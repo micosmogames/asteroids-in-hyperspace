@@ -1,0 +1,51 @@
+{
+  "name": "asteroids-in-hyperspace",
+  "version": "0.1.0",
+  "private": false,
+  "homepage": ".",
+  "dependencies": {
+    "aframe": "^0.9.2",
+    "aframe-environment-component": "^2.0.0",
+    "aframe-event-decorators": "^1.0.0",
+    "aframe-event-set-component": "^5.0.0",
+    "aframe-extras": "^6.0.0",
+    "aframe-fps-counter-component": "^1.0.1",
+    "aframe-gltf-part-component": "^1.1.0",
+    "aframe-log-component": "^1.0.7",
+    "aframe-look-at-component": "^0.8.0",
+    "@micosmo/ticker": "latest",
+    "@micosmo/aframe": "latest",
+    "axios": "^0.19.0",
+    "firebase": "^6.3.4",
+    "npm-start": "^1.4.2",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.1.0",
+    "eslint-config-standard": "^13.0.1",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-node": "^9.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "react-scripts": "^3.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 firefox version",
+      "last 1 chrome version",
+      "last 1 safari version"
+    ]
+  }
+}

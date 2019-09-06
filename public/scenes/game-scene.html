@@ -1,0 +1,66 @@
+<a-scene id="scene" keymap="Pause:F12,Cursor:F6" inspector-events fog="type:exponential; color:#040f19; density:0.17" gamma="true" debug-pause="off">
+		<a-assets timeout="30000">
+		<image id="sky" src="./assets/sky/env.png"></image>
+		<image id="sky2" src="./assets/sky/env-bottomless.png"></image>
+		<image id="micosmo" src="./assets/title/micosmo-icon.06e3433d.png"></image>
+
+		<a-asset-item response-type="arraybuffer" id="track1" src="./assets/audio/Pocketmaster_-_04_-_The_Dark_Seed.ogg"></a-asset-item>
+		<a-asset-item response-type="arraybuffer" id="track2" src="./assets/audio/Pktmstr-08-Atomic_Fessenheim_Ed.ogg"></a-asset-item>
+
+		<a-asset-item id="env-gltf" src="./assets/environment/environment.gltf"></a-asset-item>
+	</a-assets>
+
+	<!--<a-entity id="fps-counter" fps-counter="" position="0 1.337 -0.723"></a-entity>-->
+
+	<a-entity jukebox="volume:0.05;state:off;currentTrack:0;soundComponent:misound" 
+		misound__track1="src: #track1; positional: false; offset:8" misound__track2="src: #track2; positional: false;">
+	</a-entity>
+
+	<a-entity id="environments">
+
+		<a-entity id="env-1" visible="false">
+			<a-entity class="backLight" light="color:#040410;type:ambient"></a-entity>
+			<a-entity class="keyLight"
+				light="intensity:1;decay:0;shadowMapWidth:2048;shadowMapHeight:2048;shadowCameraLeft:-0.7;shadowCameraBottom:-0.7;shadowCameraRight:0.7;shadowCameraTop:0.7;shadowCameraFar:5;target:#game-board;castShadow:false"
+				position="-0.481 1.731 0.053"></a-entity>
+			<a-entity class="fillLight" position="0.485 1.2 -0.654"
+				light="intensity:0.5;target:#game-board;color:#2999ff"></a-entity>
+
+			<a-entity position="0 0.1 0" gltf-blender-part="part:environment-1;src:#env-gltf;findMesh:false"
+				shadeless-recursive></a-entity>
+		</a-entity>
+
+	</a-entity>
+
+	<a-entity id="splashScreen" position="0 1.2 -0.5">
+		<a-image src="#micosmo" position="0 1.107 -0.415" scale="2.5 2 1" rotation="-0.085 2.670 1.592"></a-image>
+		<a-entity position="0.057 0.304 -0.253">
+			<a-entity
+				text__message="align:center;color:white;value:ASTEROIDS   IN    HYPERSPACE;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;width:1.5"
+				position="0.026 0.365 0" scale="1.5 1.2 1"></a-entity>
+			<a-entity
+				text__message="align:center;color:white;value:!! GAME    UNDER     CONSTRUCTION !!;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;width:1.5"
+				position="0.026 0.250 0"></a-entity>
+		</a-entity>
+	</a-entity>
+
+	<a-entity id="game-board" position="0 1.2 -0.5" ticker visible="false">
+
+		<!--<a-sphere position="-0.2 0 0.2" scale="0.05 0.05 0.05" material="shader:standard;sphericalEnvMap:#sky"></a-sphere>-->
+
+		<a-entity position="0 -1.1 0">
+			<a-entity shadow="receive:true;cast:false"
+				gltf-blender-part="part:receive-shadows;src:#env-gltf;findMesh:false"
+				spherical-envmap="image:#sky;intensity:.5"></a-entity>
+			<a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
+				shadeless-recursive></a-entity>
+		</a-entity>
+	</a-entity>
+
+	<!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->
+	<a-entity id="player" recenter="offset: 0, 1.1, -0.2">
+		<a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" wasd-controls look-controls></a-entity>
+	</a-entity>
+
+	<a-sky color="black"></a-sky>
+</a-scene>
