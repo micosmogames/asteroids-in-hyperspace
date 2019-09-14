@@ -8,6 +8,7 @@
 		<a-asset-item response-type="arraybuffer" id="track2" src="./assets/audio/Pktmstr-08-Atomic_Fessenheim_Ed.ogg"></a-asset-item>
 
 		<a-asset-item id="env-gltf" src="./assets/environment/environment.gltf"></a-asset-item>
+		<a-asset-item id="models-gltf" src="./assets/models.gltf"></a-asset-item>
 	</a-assets>
 
 	<!--<a-entity id="fps-counter" fps-counter="" position="0 1.337 -0.723"></a-entity>-->
@@ -55,7 +56,13 @@
 			<a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
 				shadeless-recursive></a-entity>
 		</a-entity>
+
 	</a-entity>
+
+	<a-entity position="-.25 1.2 0" scale="2 2 2" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true" material="shader:flat;color:#8B0002"></a-entity>
+	<a-entity position="0 1.2 0" scale="2 2 2" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true" material="shader:flat;color:#6D68FF"></a-entity>
+	<a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:#98FF73"></a-entity>
+	<a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true" material="shader:flat;color:#81FFFC"></a-entity>
 
 	<!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->
 	<a-entity id="player" recenter="offset: 0, 1.1, -0.2">
