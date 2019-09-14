@@ -55,6 +55,10 @@ aframe.registerComponent("outline", {
     this._uniforms.thickness = { value: this.data.thickness };
   },
   _applyShader() {
+    if (this._shaderApplied) {
+      return;
+    }
+    this._shaderApplied = true;
     const mesh = this.el.getObject3D("mesh");
     this.clonedMesh = mesh.clone();
     this.clonedMesh.material = this.outlineMaterial;
