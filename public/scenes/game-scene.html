@@ -1,7 +1,14 @@
-<a-scene id="scene" keymap="Pause:F12,Cursor:F6" inspector-events fog="type:exponential; color:#040f19; density:0.17"
-  gamma="true" debug-pause="off" keyboard-shortcuts="enterVR: true">
+<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Cursor:F6" inspector-events
+  fog="type:exponential; color:#040f19; density:0.17" gamma="true"
+  gamestate="state:Loading; states:Loading,MainMenu,Nextlevel,Playing,Endlevel,Endgame,Pause,Resume">
 
-  <a-entity id="startup" startup="name:Asteroids In Hyperspace;state:Loading" states="Loading, MainMenu"></a-entity>
+  <a-entity id="DataGroups">
+    <a-datagroup id="DefaultButton" dataset__geometry="primitive:box;depth:0.012;height:0.025;width:0.075"
+      dataset__text="align:center;color:#000000;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;wrapCount:10;width:0.070;zOffset:0.0065"
+      dataset__material="color:#ffff00;emissive:#ffff00;emissiveIntensity:1"
+      dataset__collider="layer:ui;collidesWith:cursor;shape:box">
+    </a-datagroup>
+  </a-entity>
 
   <a-assets timeout="30000">
     <image id="sky" src="./assets/sky/env.png"></image>
@@ -37,7 +44,7 @@
     </a-entity>
   </a-entity>
 
-  <a-entity id="splashScreen" position="0 1.2 -0.5">
+  <a-entity id="SplashScreen" position="0 1.2 -0.5" visible="false">
     <a-image src="#micosmo" position="0 1.107 -0.415" scale="2.5 2 1" rotation="-0.085 2.670 1.592"></a-image>
     <a-entity position="0.057 0.304 -0.253">
       <a-entity
@@ -45,12 +52,25 @@
         position="0.026 0.365 0" scale="1.5 1.2 1"></a-entity>
       <a-entity
         text__message="align:center;color:white;value:!! GAME    UNDER     CONSTRUCTION !!;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;width:1.5"
-        position="0.026 0.250 0"></a-entity>
+        position="0.026 0.250 0">
+        <a-button class="ui" bstyle="#DefaultButton" key="F1" btext="value:My  Button"></a-button>
+        <a-entity id="resumeButton" class="ui cursor-paused" keymap="F2" position="0.100 0.000 0.000"
+          geometry="depth:0.012;height:0.025;width:0.075"
+          collider="layer:ui;collidesWith:cursor;depth:0.03;height:0.05;width:0.075;shape:box"
+          button="style:#DefaultButton">
+          <a-entity position="0 0.001 0.0065"
+            text="align:center;color:#000000;value:RESUME;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;wrapCount:10"
+            scale="0.075 0.075 1">
+          </a-entity>
+        </a-entity>
+      </a-entity>
     </a-entity>
   </a-entity>
 
-  <a-entity id="game-board" position="0 1.2 -0.5" ticker visible="false">
-    <!--<a-sphere position="-0.2 0 0.2" scale="0.05 0.05 0.05" material="shader:standard;sphericalEnvMap:#sky"></a-sphere>-->
+  <a-entity id="GameBoard" position="0 1.2 -0.5" ticker visible="false">
+    <!--<a-sphere position="-0.2 0 0.2" scale="0.05 0.05 0.05" material="shader:standard;sphericalEnvMap:#sky"></a-sphere>
+    
+    -->
 
     <a-entity position="0 -1.1 0">
       <a-entity shadow="receive:true;cast:false" gltf-blender-part="part:receive-shadows;src:#env-gltf;findMesh:false"
@@ -58,16 +78,16 @@
       <a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
         shadeless-recursive></a-entity>
     </a-entity>
-  </a-entity>
 
-  <a-entity position="-.25 1.2 0" scale="2 2 2" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
-    material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-entity>
-  <a-entity position="0 1.2 0" scale="2 2 2" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
-    material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-entity>
-  <a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
-    material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002"></a-entity>
-  <a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
-    material="shader:flat;color:black" outline="color:#81FFFC;thickness:-0.002"></a-entity>
+    <a-entity position="-.25 1.2 0" scale="2 2 2" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-entity>
+    <a-entity position="0 1.2 0" scale="2 2 2" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-entity>
+    <a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002"></a-entity>
+    <a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#81FFFC;thickness:-0.002"></a-entity>
+  </a-entity>
 
   <!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->
   <a-entity id="player" recenter="offset: 0, 1.1, -0.2">
