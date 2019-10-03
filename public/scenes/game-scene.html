@@ -3,9 +3,12 @@
   gamestate="state:Loading; states:Loading,MainMenu,Nextlevel,Playing,Endlevel,Endgame,Pause,Resume">
 
   <a-entity id="DataGroups">
+    <a-datagroup id="defaults" dataset__font="font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;"
+      dataset__text="|font|align:center;color:#000000;negate:false;side:double;wrapCount:10;">
+    </a-datagroup>
     <a-datagroup id="DefaultButton" dataset__geometry="primitive:box;depth:0.012;height:0.025;width:0.075"
-      dataset__text="align:center;color:#000000;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;wrapCount:10;width:0.070;zOffset:0.0065"
-      dataset__material="color:#ffff00;emissive:#ffff00;emissiveIntensity:1"
+      dataset__text="|#defaults:text|width:0.070;zOffset:0.0065"
+      dataset__material="color:#ffffff;emissive:#ffffff;emissiveIntensity:1"
       dataset__collider="layer:ui;collidesWith:cursor;shape:box">
     </a-datagroup>
   </a-entity>
@@ -24,7 +27,9 @@
     <a-asset-item id="models-gltf" src="./assets/models.gltf"></a-asset-item>
   </a-assets>
 
-  <!--<a-entity id="fps-counter" fps-counter="" position="0 1.337 -0.723"></a-entity>-->
+  <!--<a-entity id="fps-counter" fps-counter="" position="0 1.337 -0.723"></a-entity>
+  states="list:Loading,MainMenu,Nextlevel,Playing,Endlevel,Endgame,Pause,Resume"
+  -->
 
   <a-entity jukebox="volume:0.05;state:off;currentTrack:0;soundComponent:misound"
     misound__track1="src: #track1; positional: false; offset:8" misound__track2="src: #track2; positional: false;">
@@ -54,15 +59,6 @@
         text__message="align:center;color:white;value:!! GAME    UNDER     CONSTRUCTION !!;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;width:1.5"
         position="0.026 0.250 0">
         <a-button class="ui" bstyle="#DefaultButton" key="F1" btext="value:My  Button"></a-button>
-        <a-entity id="resumeButton" class="ui cursor-paused" keymap="F2" position="0.100 0.000 0.000"
-          geometry="depth:0.012;height:0.025;width:0.075"
-          collider="layer:ui;collidesWith:cursor;depth:0.03;height:0.05;width:0.075;shape:box"
-          button="style:#DefaultButton">
-          <a-entity position="0 0.001 0.0065"
-            text="align:center;color:#000000;value:RESUME;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;wrapCount:10"
-            scale="0.075 0.075 1">
-          </a-entity>
-        </a-entity>
       </a-entity>
     </a-entity>
   </a-entity>
@@ -91,7 +87,13 @@
 
   <!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->
   <a-entity id="player" recenter="offset: 0, 1.1, -0.2">
-    <a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" wasd-controls look-controls></a-entity>
+    <a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" wasd-controls look-controls>
+      <a-entity id="cursor" cursor="fuseTimeout: 500; rayOrigin: mouse" position="0 0 -0.1"
+        raycaster="objects: .cursor-none; interval: 0; enabled: false"
+        geometry="primitive: ring; radiusInner: 0.001; radiusOuter: 0.002" material="color: red; shader: flat" `
+        headless-controller="cameraAdjust:0 0.5 -0.3" keymap="Trigger:Space, Trigger:Enter" visible="false">
+      </a-entity>
+    </a-entity>
   </a-entity>
 
   <a-sky color="black"></a-sky>

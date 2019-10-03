@@ -37,15 +37,13 @@ aframe.registerComponent('gamestate', {
       // Should only be ignoring 'Loading' anyway
       this.states.chain(this.data.state);
     }
-    if (!this.compStates && !(this.compStates = this.el.getAttribute('states'))) {
-      this.el.setAttribute('states', 'list', this.data.states);
-    }
+    if (!this.compStates && !(this.compStates = this.el.getAttribute('states')))
+      this.el.setAttribute('states', { list: this.data.states, changeEvent: 'gamestatechanged' });
   },
 
   startupComplete: bindEvent(function () {
     initialised = true;
     this.states = this.el.sceneEl.components.states;
-    console.log(this.states);
     this.states.chain(this.data.state);
   }),
 
@@ -92,7 +90,54 @@ aframe.registerComponent('gamestate', {
   exitMainMenu() {
     this.el.sceneEl.querySelector('#GameBoard').object3D.visible = false;
   },
-
+  /*
+    gamestatechanged: bindEvent({ target: '[game-state]' }, function (evt) {
+      const newState = evt.detail;
+      switch (newState) {
+      case 'MainMenu':
+        triggerCacheTimeout = 0;
+        cursorEl.setAttribute('raycaster', {
+          objects: '.cursor-menu',
+          interval: 125
+        });
+        break;
+      case 'Playing':
+        triggerCacheTimeout = 1000;
+        cursorEl.setAttribute('raycaster', {
+          objects: '[headless], #timeWarpButton',
+          interval: 0
+        });
+        break;
+      case 'GameOver':
+        triggerCacheTimeout = 0;
+        cursorEl.setAttribute('raycaster', {
+          objects: '.cursor-gameover',
+          interval: 125
+        });
+        break;
+      default:
+        triggerCacheTimeout = 0;
+        cursorEl.setAttribute('raycaster', {
+          objects: '.cursor-none',
+          interval: 10000
+        });
+        break;
+      }
+    }),
+    pauseStarted: bindEvent({ target: '[game-state]' }, function (evt) {
+      Object.assign(lastRaycasterData, cursorEl.components.raycaster.data);
+      cursorEl.setAttribute('raycaster', {
+        objects: '.cursor-paused',
+        interval: 500
+      });
+    }),
+    pauseEnded: bindEvent({ target: '[game-state]' }, function (evt) {
+      cursorEl.setAttribute('raycaster', {
+        objects: lastRaycasterData.objects,
+        interval: lastRaycasterData.interval
+      });
+    }),
+  */
   addscore: bindEvent(function (evt) {
     const amount = evt.detail * multiplier;
     score += amount;

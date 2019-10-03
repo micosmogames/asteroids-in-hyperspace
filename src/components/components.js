@@ -8,4 +8,5 @@ import "./gamestate";
 import "./shadeless-recursive";
 import "./outline";
 import "./logger";
+import "./headless-controller";
 // import "./xbutton";
