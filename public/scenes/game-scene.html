@@ -1,13 +1,13 @@
 <a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Cursor:F6" inspector-events
   fog="type:exponential; color:#040f19; density:0.17" gamma="true"
-  gamestate="state:Loading; states:Loading,MainMenu,Nextlevel,Playing,Endlevel,Endgame,Pause,Resume">
+  gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Resume">
 
   <a-entity id="DataGroups">
     <a-datagroup id="defaults" dataset__font="font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;"
-      dataset__text="|font|align:center;color:#000000;negate:false;side:double;wrapCount:10;">
+      dataset__text="|font|align:center;color:#ffffff;negate:false;side:double;">
     </a-datagroup>
-    <a-datagroup id="DefaultButton" dataset__geometry="primitive:box;depth:0.012;height:0.025;width:0.075"
-      dataset__text="|#defaults:text|width:0.070;zOffset:0.0065"
+    <a-datagroup id="DefaultButton" dataset__geometry="primitive:box;depth:0.012;height:0.030;width:0.085"
+      dataset__text="|defaults:|color:#000000;wrapCount:10;width:0.070;zOffset:0.007"
       dataset__material="color:#ffffff;emissive:#ffffff;emissiveIntensity:1"
       dataset__collider="layer:ui;collidesWith:cursor;shape:box">
     </a-datagroup>
@@ -31,17 +31,17 @@
   states="list:Loading,MainMenu,Nextlevel,Playing,Endlevel,Endgame,Pause,Resume"
   -->
 
-  <a-entity jukebox="volume:0.05;state:off;currentTrack:0;soundComponent:misound"
-    misound__track1="src: #track1; positional: false; offset:8" misound__track2="src: #track2; positional: false;">
+  <a-entity jukebox="volume:0.05;state:off;currentTrack:0" misound__track1="src: #track1; positional: false; offset:8"
+    misound__track2="src: #track2; positional: false;">
   </a-entity>
 
   <a-entity id="environments">
     <a-entity id="env-1" visible="false">
       <a-entity class="backLight" light="color:#040410;type:ambient"></a-entity>
       <a-entity class="keyLight"
-        light="intensity:1;decay:0;shadowMapWidth:2048;shadowMapHeight:2048;shadowCameraLeft:-0.7;shadowCameraBottom:-0.7;shadowCameraRight:0.7;shadowCameraTop:0.7;shadowCameraFar:5;target:#game-board;castShadow:false"
+        light="intensity:1;decay:0;shadowMapWidth:2048;shadowMapHeight:2048;shadowCameraLeft:-0.7;shadowCameraBottom:-0.7;shadowCameraRight:0.7;shadowCameraTop:0.7;shadowCameraFar:5;target:#GameBoard;castShadow:false"
         position="-0.481 1.731 0.053"></a-entity>
-      <a-entity class="fillLight" position="0.485 1.2 -0.654" light="intensity:0.5;target:#game-board;color:#2999ff">
+      <a-entity class="fillLight" position="0.485 1.2 -0.654" light="intensity:0.5;target:#GameBoard;color:#2999ff">
       </a-entity>
 
       <a-entity position="0 0.1 0" gltf-blender-part="part:environment-1;src:#env-gltf;findMesh:false"
@@ -50,16 +50,24 @@
   </a-entity>
 
   <a-entity id="SplashScreen" position="0 1.2 -0.5" visible="false">
-    <a-image src="#micosmo" position="0 1.107 -0.415" scale="2.5 2 1" rotation="-0.085 2.670 1.592"></a-image>
-    <a-entity position="0.057 0.304 -0.253">
-      <a-entity
-        text__message="align:center;color:white;value:ASTEROIDS   IN    HYPERSPACE;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;width:1.5"
-        position="0.026 0.365 0" scale="1.5 1.2 1"></a-entity>
-      <a-entity
-        text__message="align:center;color:white;value:!! GAME    UNDER     CONSTRUCTION !!;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double;width:1.5"
-        position="0.026 0.250 0">
-        <a-button class="ui" bstyle="#DefaultButton" key="F1" btext="value:My  Button"></a-button>
+    <a-image src="#micosmo" position="0 1.107 -0.415" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
+    <a-entity position="0.057 0.350 -0.381">
+      <a-entity mi__text="|defaults:|value:ASTEROIDS   IN    HYPERSPACE;width:2.1" position="0.026 0.365 0"></a-entity>
+      <a-button class="ui cursor-splash" bstyle="DefaultButton" key="F1" btext="value:ENTER"
+        bstate="#scene.chain.Newgame" position="0.026 0.250 0">
+      </a-button>
+      <a-entity mi__text="|defaults:|value:!! GAME    UNDER     CONSTRUCTION !!;width:1.5" position="0.026 0.170 0">
       </a-entity>
+    </a-entity>
+    <a-entity position="0 -0.265 -0.300">
+      <a-entity position="-.25 1.2 0" scale="2 2 2" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+        material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-entity>
+      <a-entity position="0 1.2 0" scale="2 2 2" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+        material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-entity>
+      <a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
+        material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002"></a-entity>
+      <a-entity position=".40 1.2 0" scale="2 2 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
+        material="shader:flat;color:black" outline="color:#81FFFC;thickness:-0.002"></a-entity>
     </a-entity>
   </a-entity>
 
@@ -69,20 +77,31 @@
     -->
 
     <a-entity position="0 -1.1 0">
-      <a-entity shadow="receive:true;cast:false" gltf-blender-part="part:receive-shadows;src:#env-gltf;findMesh:false"
-        spherical-envmap="image:#sky;intensity:.5"></a-entity>
-      <a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
-        shadeless-recursive></a-entity>
+      <!--<a-entity shadow="receive:true;cast:false" gltf-blender-part="part:receive-shadows;src:#env-gltf;findMesh:false"
+        spherical-envmap="image:#sky;intensity:.5"></a-entity>-->
+      <!--<a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
+        shadeless-recursive></a-entity>-->
     </a-entity>
 
-    <a-entity position="-.25 1.2 0" scale="2 2 2" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-entity>
-    <a-entity position="0 1.2 0" scale="2 2 2" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-entity>
-    <a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002"></a-entity>
-    <a-entity position=".25 1.2 0" scale="2 2 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#81FFFC;thickness:-0.002"></a-entity>
+    <a-entity id="MainMenu" position="0.026 0.26 0" visible="false">
+      <a-button class="ui cursor-menu" bstyle="DefaultButton" key="F1" btext="value:BEGIN" bstate="#scene.chain.Newgame"
+        position="0.026 0.250 0">
+      </a-button>
+      <a-entity id="credits" position="0.255 -0.293 0.329">
+        <a-entity mi__text="|defaults:|value:MUSIC      BY      POCKETMASTER;" position="0.026 0.365 0"
+          scale="0.25 0.25 0.25"></a-entity>
+        <a-entity mi__text="|defaults:|value:WWW      POCKETMASTER      CH;" position="0.026 0.355 0"
+          scale="0.25 0.25 0.25"></a-entity>
+      </a-entity>
+    </a-entity>
+
+    <a-entity id="Game" position="0.026 0.26 0" visible="false">
+      <a-button class="ui cursor-game" bstyle="DefaultButton" key="F1" btext="value:MENU" bstate="#scene.chain.MainMenu"
+        position="0.550 0.700 0"></a-button>
+      <a-sphere radius=".5" shader="standard" color="green" wireframe="false" wireframe-linewidth="1"
+        position="-0.400 0.300 -0.200"></a-sphere>
+    </a-entity>
+
   </a-entity>
 
   <!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->

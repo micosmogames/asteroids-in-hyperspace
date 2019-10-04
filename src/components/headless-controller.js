@@ -5,7 +5,7 @@ import * as ticker from '@micosmo/ticker/aframe-ticker';
 import { onLoadedDo } from '@micosmo/aframe/startup';
 import { bindEvent } from 'aframe-event-decorators/event-binder';
 import { isVisibleInScene } from '@micosmo/aframe/lib/utils';
-import { declareMethods, method } from '@micosmo/core';
+import { declareMethods, method, requestObject, returnObject } from '@micosmo/core';
 
 declareMethods(triggerUp, fTriggerCacheTimeout);
 
@@ -20,7 +20,7 @@ const cameraAdjustment = new THREE.Vector3(0, 0, 0);
 
 aframe.registerComponent("headless-controller", {
   schema: {
-    rayClass: { type: 'string', default: '' },
+    rayClass: { type: 'string', default: '.cursor-none' },
     rayInterval: { type: 'int', default: 0 },
     triggerCacheTimeout: { type: 'number', default: 0.0 },
     cameraAdjust: { type: 'vec3' },
@@ -43,13 +43,14 @@ aframe.registerComponent("headless-controller", {
     initialised = true;
   },
   update(oldData) {
-    if (oldData.rayClass && oldData.rayClass !== this.data.rayClass)
+    if (oldData.rayClass !== this.data.rayClass) {
       cursorEl.setAttribute('raycaster', { objects: this.data.rayClass, interval: this.data.rayInterval });
+    }
     if (oldData.cameraAdjust !== this.data.cameraAdjust) {
       const v = this.data.cameraAdjust;
       cameraAdjustment.set(v.x, v.y, v.z);
     }
-    if (oldData.triggers && oldData.triggers !== this.data.triggers) {
+    if (oldData.triggers !== this.data.triggers) {
       this.el.sceneEl.systems.keyboard.removeListeners(this);
       applyOtherTriggers(this, oldData.triggers, this.data.triggers);
       this.el.sceneEl.systems.keyboard.addListeners(this);
@@ -66,11 +67,12 @@ aframe.registerComponent("headless-controller", {
     } else {
       cursorEl.object3D.visible = true;
       saveCameraPosition.copy(cameraEl.object3D.position);
-      cameraEl.object3D.position.copy(cursorCameraPosition);
       cameraEl.object3D.position.add(cameraAdjustment);
       cursorEl.setAttribute('raycaster', 'enabled', 'true');
     }
   },
+  startRaycaster(...args) { setRaycaster(this, ...args) },
+  stopRaycaster() { setRaycaster(this, '.cursor-none', 0) },
 
   mouseenter: bindEvent(function (evt) {
     targetSelected(this, evt);
@@ -87,8 +89,16 @@ aframe.registerComponent("headless-controller", {
   }
 });
 
+function setRaycaster(hlc, rayClass, interval = 125, cacheTimeout = 0) {
+  const o = requestObject();
+  o.rayClass = rayClass; o.rayInterval = interval; o.triggerCacheTimeout = cacheTimeout;
+  hlc.el.setAttribute(hlc.attrName, o);
+  returnObject(o);
+}
+
 function applyOtherTriggers(hlc, oldTriggers, newTriggers) {
-  oldTriggers.forEach(id => delete hlc[`keydown_${id}`]);
+  if (oldTriggers)
+    oldTriggers.forEach(id => delete hlc[`keydown_${id}`]);
   newTriggers.forEach(id => { hlc[`keydown_${id}`] = function () { triggerDown(hlc, id); return true; } });
 }
 
@@ -130,17 +140,17 @@ function triggerDown(hlc, key) {
 }
 
 function emitTriggerDown(hlc, el, key) {
-  (triggerEl = el).emit('triggerDown', {
-    triggerEl,
-    key
-  });
+  const o = requestObject();
+  o.triggerEl = el; o.key = key;
+  (triggerEl = el).emit('triggerDown', o, false);
+  returnObject(o);
   hlc.triggerTimer.start();
 }
 
 method(triggerUp);
 function triggerUp() {
   if (triggerEl)
-    triggerEl.emit('triggerUp');
+    triggerEl.emit('triggerUp', undefined, false);
   triggerEl = undefined;
 }
 

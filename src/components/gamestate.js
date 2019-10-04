@@ -2,7 +2,7 @@
 import aframe from 'aframe';
 import { bindEvent } from 'aframe-event-decorators';
 // import { startProcess, msWaiter } from '@micosmo/ticker/aframe-ticker';
-// import { afterLoadedDo } from '@micosmo/aframe/startup';
+import { onLoadedDo } from '@micosmo/aframe/startup';
 
 const controlsNames = ['Basic', 'Advanced'];
 
@@ -27,8 +27,14 @@ aframe.registerComponent('gamestate', {
     const scene = this.el.sceneEl;
     this.SplashScreen = scene.querySelector('#SplashScreen');
     this.GameBoard = scene.querySelector('#GameBoard');
-    this.Jukebox = scene.querySelector('#Jukebox');
+    this.Jukebox = scene.querySelector('[jukebox]');
+    this.MainMenu = scene.querySelector('#MainMenu');
+    this.Game = scene.querySelector('#Game');
+    this.Env1 = scene.querySelector('#env-1');
     this.el.sceneEl.systems.keyboard.addListeners(this);
+    onLoadedDo(() => {
+      this.compHeadless = scene.querySelector('[headless-controller]').components['headless-controller'];
+    });
   },
 
   update(oldData) {
@@ -43,25 +49,13 @@ aframe.registerComponent('gamestate', {
 
   startupComplete: bindEvent(function () {
     initialised = true;
+    var el;
+    for (el of this.GameBoard.children)
+      if (el.id) el.pause(); // Pause all the gameboard children that are named.
+    this.SplashScreen.pause();
     this.states = this.el.sceneEl.components.states;
     this.states.chain(this.data.state);
   }),
-
-  keydown_Pause() {
-    this.gamePausedEl.emit('startPause', {
-      displayPause: true,
-      endCallback: () => { }
-    });
-    return true;
-  },
-  keydown_Cursor() {
-    document.getElementById('cursor').components['headless-controller'].toggleCursor();
-    return true;
-  },
-  keydown_VRToggle() {
-    const el = this.el.sceneEl;
-    el.is('vr-mode') ? el.exitVR() : el.enterVR();
-  },
 
   gamestatechanged: bindEvent(function (evt) {
     const detail = evt.detail;
@@ -79,16 +73,38 @@ aframe.registerComponent('gamestate', {
 
   enterLoading() {
     this.SplashScreen.object3D.visible = true;
+    this.SplashScreen.play();
+    this.compHeadless.startRaycaster('.cursor-splash');
   },
   exitLoading() {
     this.SplashScreen.object3D.visible = false;
-    this.el.sceneEl.querySelector('#')
+    this.SplashScreen.pause();
+    this.compHeadless.stopRaycaster();
   },
   enterMainMenu() {
-    this.el.sceneEl.querySelector('#GameBoard').object3D.visible = true;
+    this.Jukebox.setAttribute('jukebox', 'state', 'pause');
+    this.GameBoard.object3D.visible = true;
+    this.MainMenu.object3D.visible = true;
+    this.MainMenu.play();
+    this.compHeadless.startRaycaster('.cursor-menu');
   },
   exitMainMenu() {
-    this.el.sceneEl.querySelector('#GameBoard').object3D.visible = false;
+    this.MainMenu.object3D.visible = false;
+    this.MainMenu.pause();
+    this.compHeadless.stopRaycaster();
+  },
+  enterNewgame() {
+    this.Jukebox.setAttribute('jukebox', 'state', 'on');
+    this.GameBoard.object3D.visible = true;
+    this.Game.object3D.visible = true;
+    this.Env1.object3D.visible = true;
+    this.Game.play();
+    this.compHeadless.startRaycaster('.cursor-game');
+  },
+  exitNewgame() {
+    this.Game.object3D.visible = false;
+    this.Game.pause();
+    this.compHeadless.stopRaycaster();
   },
   /*
     gamestatechanged: bindEvent({ target: '[game-state]' }, function (evt) {
@@ -138,6 +154,23 @@ aframe.registerComponent('gamestate', {
       });
     }),
   */
+
+  keydown_Pause() {
+    this.gamePausedEl.emit('startPause', {
+      displayPause: true,
+      endCallback: () => { }
+    });
+    return true;
+  },
+  keydown_Cursor() {
+    document.getElementById('cursor').components['headless-controller'].toggleCursor();
+    return true;
+  },
+  keydown_VRToggle() {
+    const el = this.el.sceneEl;
+    el.is('vr-mode') ? el.exitVR() : el.enterVR();
+  },
+
   addscore: bindEvent(function (evt) {
     const amount = evt.detail * multiplier;
     score += amount;
