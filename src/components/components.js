@@ -10,3 +10,4 @@ import "./outline";
 import "./logger";
 import "./headless-controller";
 import "./recenter";
+import "./flip-normals";
