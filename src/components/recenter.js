@@ -12,10 +12,7 @@ aframe.registerComponent("recenter", {
     const centerEl = x || document.querySelector("[camera]");
     // const boardEl = document.querySelector("#game-board");
 
-    const rotationY = new THREE.Euler().setFromRotationMatrix(
-      centerEl.object3D.matrix,
-      "YXZ"
-    ).y;
+    const rotationY = new THREE.Euler().setFromRotationMatrix(centerEl.object3D.matrix, "YXZ").y;
 
     const phi = -rotationY;
     const rotation = this.el.object3D.rotation;

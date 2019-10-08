@@ -1,4 +1,4 @@
-<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Cursor:F6" inspector-events
+<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6" inspector-events
   fog="type:exponential; color:#040f19; density:0.17" gamma="true"
   gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Resume">
 
@@ -76,8 +76,8 @@
     -->
 
     <a-entity position="0 -1.1 0">
-      <!--<a-entity shadow="receive:true;cast:false" gltf-blender-part="part:receive-shadows;src:#env-gltf;findMesh:false"
-        spherical-envmap="image:#sky;intensity:.5"></a-entity>-->
+      <a-entity shadow="receive:true;cast:false" gltf-blender-part="part:receive-shadows;src:#env-gltf;findMesh:false"
+        spherical-envmap="image:#sky;intensity:.5"></a-entity>
       <!--<a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
         shadeless-recursive></a-entity>-->
     </a-entity>
@@ -95,23 +95,24 @@
     </a-entity>
 
     <a-entity id="Game" position="0.026 0.26 0" visible="false">
-      <a-button class="ui cursor-game" bstyle="DefaultButton" key="F1" btext="value:MENU" bstate="#scene.chain.MainMenu"
-        position="0.550 0.700 0"></a-button>
       <a-sphere radius=".5" shader="standard" flip-normals color="green" wireframe="false" wireframe-linewidth="1"
-        position="-0.400 0.300 -0.200"></a-sphere>
+        position="0 0.188 -0.166"></a-sphere>
     </a-entity>
 
   </a-entity>
 
   <!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->
   <a-entity id="player" recenter="offset: 0, 1.1, -0.2">
-    <a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" wasd-controls look-controls>
+    <a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" wasd-controls="adAxis:z;wsAxis:y"
+      look-controls>
       <a-entity id="cursor" cursor="fuseTimeout: 500; rayOrigin: mouse" position="0 0 -0.1"
         raycaster="objects: .cursor-none; interval: 0; enabled: false"
         geometry="primitive: ring; radiusInner: 0.001; radiusOuter: 0.002" material="color: red; shader: flat" `
-        headless-controller="cameraAdjust:0 0.5 -0.3" keymap="Trigger:Space, Trigger:Enter" visible="false">
+        headless-controller="cameraAdjust:0 0.0 -0.3" keymap="Trigger:Space, Trigger:Enter" visible="false">
       </a-entity>
     </a-entity>
+    <a-entity id="leftHand" game-controller="left" visible="false"></a-entity>
+    <a-entity id="rightHand" game-controller="right" visible="false"></a-entity>
   </a-entity>
 
   <a-sky color="black"></a-sky>

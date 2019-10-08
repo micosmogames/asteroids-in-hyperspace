@@ -9,5 +9,6 @@ import "./shadeless-recursive";
 import "./outline";
 import "./logger";
 import "./headless-controller";
+import "./game-controller";
 import "./recenter";
 import "./flip-normals";

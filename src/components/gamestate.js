@@ -45,6 +45,7 @@ aframe.registerComponent('gamestate', {
     }
     if (!this.compStates && !(this.compStates = this.el.getAttribute('states')))
       this.el.setAttribute('states', { list: this.data.states, changeEvent: 'gamestatechanged' });
+    this.compStates = this.el.components.states;
   },
 
   startupComplete: bindEvent(function () {
@@ -169,6 +170,9 @@ aframe.registerComponent('gamestate', {
   keydown_VRToggle() {
     const el = this.el.sceneEl;
     el.is('vr-mode') ? el.exitVR() : el.enterVR();
+  },
+  keydown_Menu() {
+    this.compStates.chain('MainMenu');
   },
 
   addscore: bindEvent(function (evt) {
