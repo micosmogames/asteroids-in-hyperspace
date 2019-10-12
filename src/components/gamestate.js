@@ -51,11 +51,11 @@ aframe.registerComponent('gamestate', {
 
   startupComplete: bindEvent(function () {
     initialised = true;
-    for (const el of this.GameBoard.children)
+    for (var el of this.GameBoard.children)
       if (el.id) el.pause(); // Pause all the gameboard children that are named.
     this.GameBoard.pause();
     this.SplashScreen.pause();
-    this.player.pause();
+    this.Player.pause();
     this.states = this.el.sceneEl.components.states;
     this.states.chain(this.data.state);
   }),
@@ -64,24 +64,15 @@ aframe.registerComponent('gamestate', {
     const detail = evt.detail;
     this.oldData.state = this.data.state = detail.toState; // Keep gamestate upto date.
     console.info(`micosmo:component:gamestate:gamestatechanged: ${detail.fromState ? `'${detail.fromState}' to ` : ''}${detail.toState} by '${detail.op}'`);
-    if (detail.fromState) {
-      const meth = `exit${detail.fromState}`;
-      if (this[meth])
-        this[meth](detail);
-    }
-    const meth = `enter${detail.toState}`;
-    if (this[meth])
-      this[meth](detail);
+    evt.detail.disperseEvent(evt, this); // Disperse event back to me
   }),
 
-  enterLoading() {
-    this.SplashScreen.object3D.visible = true;
-    this.SplashScreen.play();
+  enterLoading(evt) {
+    evt.detail.enter.action(evt, this.SplashScreen, this.Player);
     this.compHeadless.startRaycaster('.cursor-splash');
   },
-  exitLoading() {
-    this.SplashScreen.object3D.visible = false;
-    this.SplashScreen.pause();
+  exitLoading(evt) {
+    evt.detail.exit.action(evt, this.SplashScreen);
     this.compHeadless.stopRaycaster();
   },
   enterMainMenu() {
@@ -166,7 +157,7 @@ aframe.registerComponent('gamestate', {
     return true;
   },
   keydown_Cursor() {
-    document.getElementById('cursor').components['headless-controller'].toggleCursor();
+    this.el.sceneEl.querySelector('#cursor').components['headless-controller'].toggleCursor();
     return true;
   },
   keydown_VRToggle() {
