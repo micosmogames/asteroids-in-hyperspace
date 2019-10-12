@@ -31,6 +31,7 @@ aframe.registerComponent('gamestate', {
     this.MainMenu = scene.querySelector('#MainMenu');
     this.Game = scene.querySelector('#Game');
     this.Env1 = scene.querySelector('#env-1');
+    this.Player = scene.querySelector('#player');
     this.el.sceneEl.systems.keyboard.addListeners(this);
     onLoadedDo(() => {
       this.compHeadless = scene.querySelector('[headless-controller]').components['headless-controller'];
@@ -44,16 +45,17 @@ aframe.registerComponent('gamestate', {
       this.states.chain(this.data.state);
     }
     if (!this.compStates && !(this.compStates = this.el.getAttribute('states')))
-      this.el.setAttribute('states', { list: this.data.states, changeEvent: 'gamestatechanged' });
+      this.el.setAttribute('states', { list: this.data.states, event: 'gamestatechanged' });
     this.compStates = this.el.components.states;
   },
 
   startupComplete: bindEvent(function () {
     initialised = true;
-    var el;
-    for (el of this.GameBoard.children)
+    for (const el of this.GameBoard.children)
       if (el.id) el.pause(); // Pause all the gameboard children that are named.
+    this.GameBoard.pause();
     this.SplashScreen.pause();
+    this.player.pause();
     this.states = this.el.sceneEl.components.states;
     this.states.chain(this.data.state);
   }),
@@ -61,7 +63,7 @@ aframe.registerComponent('gamestate', {
   gamestatechanged: bindEvent(function (evt) {
     const detail = evt.detail;
     this.oldData.state = this.data.state = detail.toState; // Keep gamestate upto date.
-    console.info(`micosmo:component:gamestate:gamestatechanged: ${detail.fromState ? `'${detail.fromState}' to ` : ''}${detail.toState} by '${detail.how}'`);
+    console.info(`micosmo:component:gamestate:gamestatechanged: ${detail.fromState ? `'${detail.fromState}' to ` : ''}${detail.toState} by '${detail.op}'`);
     if (detail.fromState) {
       const meth = `exit${detail.fromState}`;
       if (this[meth])
