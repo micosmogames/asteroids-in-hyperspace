@@ -3,6 +3,7 @@ import aframe from 'aframe';
 import { bindEvent } from 'aframe-event-decorators';
 // import { startProcess, msWaiter } from '@micosmo/ticker/aframe-ticker';
 import { onLoadedDo } from '@micosmo/aframe/startup';
+import { noVisibilityChecks as noKeyboardVisibilityChecks } from '@micosmo/aframe/keyboard';
 
 const controlsNames = ['Basic', 'Advanced'];
 
@@ -23,12 +24,14 @@ aframe.registerComponent('gamestate', {
   init() {
     if (instance !== undefined && instance !== this)
       throw new Error('micosmo:component:gamestate:init: Single instance only');
+    noKeyboardVisibilityChecks(); // Key listeners only inactive if related component is paused.
     instance = this;
     const scene = this.el.sceneEl;
     this.SplashScreen = scene.querySelector('#SplashScreen');
     this.GameBoard = scene.querySelector('#GameBoard');
     this.Jukebox = scene.querySelector('[jukebox]');
     this.MainMenu = scene.querySelector('#MainMenu');
+    this.PauseGame = scene.querySelector('#PauseGame');
     this.Game = scene.querySelector('#Game');
     this.Env1 = scene.querySelector('#env-1');
     this.Player = scene.querySelector('#player');
@@ -40,7 +43,7 @@ aframe.registerComponent('gamestate', {
 
   update(oldData) {
     if (oldData.state !== this.data.state && initialised) {
-      // Wait for play start before emitting game state changes
+      // Wait for play to start before emitting game state changes
       // Should only be ignoring 'Loading' anyway
       this.states.chain(this.data.state);
     }
@@ -55,6 +58,7 @@ aframe.registerComponent('gamestate', {
       if (el.id) el.pause(); // Pause all the gameboard children that are named.
     this.GameBoard.pause();
     this.SplashScreen.pause();
+    this.PauseGame.pause();
     this.Player.pause();
     this.states = this.el.sceneEl.components.states;
     this.states.chain(this.data.state);
@@ -62,42 +66,52 @@ aframe.registerComponent('gamestate', {
 
   gamestatechanged: bindEvent(function (evt) {
     const detail = evt.detail;
-    this.oldData.state = this.data.state = detail.toState; // Keep gamestate upto date.
-    console.info(`micosmo:component:gamestate:gamestatechanged: ${detail.fromState ? `'${detail.fromState}' to ` : ''}${detail.toState} by '${detail.op}'`);
+    this.oldData.state = this.data.state = detail.to.state; // Keep gamestate data up to date.
+    console.info(`micosmo:component:gamestate:gamestatechanged: '${detail.from.state}' to '${detail.to.state}' by '${detail.op}'`);
     evt.detail.disperseEvent(evt, this); // Disperse event back to me
   }),
 
   enterLoading(evt) {
-    evt.detail.enter.action(evt, this.SplashScreen, this.Player);
+    startElement(this.SplashScreen); startElement(this.Player);
     this.compHeadless.startRaycaster('.cursor-splash');
   },
   exitLoading(evt) {
-    evt.detail.exit.action(evt, this.SplashScreen);
+    stopElement(this.SplashScreen);
     this.compHeadless.stopRaycaster();
   },
   enterMainMenu() {
     this.Jukebox.setAttribute('jukebox', 'state', 'pause');
     this.GameBoard.object3D.visible = true;
-    this.MainMenu.object3D.visible = true;
-    this.MainMenu.play();
+    startElement(this.MainMenu);
     this.compHeadless.startRaycaster('.cursor-menu');
   },
   exitMainMenu() {
-    this.MainMenu.object3D.visible = false;
-    this.MainMenu.pause();
+    stopElement(this.MainMenu);
     this.compHeadless.stopRaycaster();
   },
   enterNewgame() {
     this.Jukebox.setAttribute('jukebox', 'state', 'on');
     this.GameBoard.object3D.visible = true;
-    this.Game.object3D.visible = true;
     this.Env1.object3D.visible = true;
-    this.Game.play();
+    startElement(this.Game);
     this.compHeadless.startRaycaster('.cursor-game');
   },
   exitNewgame() {
-    this.Game.object3D.visible = false;
-    this.Game.pause();
+    stopElement(this.Game);
+    this.GameBoard.object3D.visible = false;
+    this.Env1.object3D.visible = false;
+    this.compHeadless.stopRaycaster();
+  },
+  enterPause() {
+    startElement(this.PauseGame);
+    this.jukeboxState = this.Jukebox.components.jukebox.data.state;
+    this.Jukebox.setAttribute('jukebox', 'state', 'pause');
+    this.compHeadless.startRaycaster('.cursor-pause');
+  },
+  exitPause() {
+    stopElement(this.PauseGame);
+    if (this.jukeboxState === 'on')
+      this.Jukebox.setAttribute('jukebox', 'state', 'on');
     this.compHeadless.stopRaycaster();
   },
   /*
@@ -150,10 +164,7 @@ aframe.registerComponent('gamestate', {
   */
 
   keydown_Pause() {
-    this.gamePausedEl.emit('startPause', {
-      displayPause: true,
-      endCallback: () => { }
-    });
+    this.compStates.call('Pause');
     return true;
   },
   keydown_Cursor() {
@@ -163,9 +174,12 @@ aframe.registerComponent('gamestate', {
   keydown_VRToggle() {
     const el = this.el.sceneEl;
     el.is('vr-mode') ? el.exitVR() : el.enterVR();
+    return true;
   },
   keydown_Menu() {
-    this.compStates.chain('MainMenu');
+    if (this.data.state !== 'Pause')
+      this.compStates.chain('MainMenu');
+    return true;
   },
 
   addscore: bindEvent(function (evt) {
@@ -196,6 +210,16 @@ aframe.registerComponent('gamestate', {
     };
   })(),
 });
+
+function startElement(el) {
+  el.object3D.visible = true;
+  el.play();
+}
+
+function stopElement(el) {
+  el.object3D.visible = false;
+  el.pause();
+}
 
 window.newgame = () => {
   document.querySelector('[game-state]').setAttribute('game-state', {

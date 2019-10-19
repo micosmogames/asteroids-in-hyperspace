@@ -70,6 +70,23 @@
     </a-entity>
   </a-entity>
 
+  <a-entity id="PauseGame" position="0 1.2 -0.5" visible="false">
+    <a-image src="#micosmo" position="0 1.107 -0.415" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
+    <a-entity position="0.057 0.350 -0.381">
+      <a-entity mi__text="|defaults:|value:ASTEROIDS   IN    HYPERSPACE;width:2.1" position="0.026 0.365 0"></a-entity>
+      <a-entity mi__text="|defaults:|value: GAME    PAUSED;width:1.5" position="0.026 0.250 0">
+      </a-entity>
+      <a-entity position="-0.100 0.170 0">
+        <a-button class="ui cursor-pause" bstyle="DefaultButton" key="F1" btext="value:Continue" bstate="#scene.return"
+          position="0 0 0"></a-button>
+        <a-button class="ui cursor-pause" bstyle="DefaultButton" key="F2" btext="value:Menu"
+          bstate="#scene.return.MainMenu" position="0.120 0 0"></a-button>
+        <a-button class="ui cursor-pause" bstyle="DefaultButton" key="F3" btext="value:Loading"
+          bstate="#scene.return.Loading" position="0.240 0 0"></a-button>
+      </a-entity>
+    </a-entity>
+  </a-entity>
+
   <a-entity id="GameBoard" position="0 1.2 -0.5" ticker visible="false">
     <!--<a-sphere position="-0.2 0 0.2" scale="0.05 0.05 0.05" material="shader:standard;sphericalEnvMap:#sky"></a-sphere>
     

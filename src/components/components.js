@@ -12,3 +12,4 @@ import "./headless-controller";
 import "./game-controller";
 import "./recenter";
 import "./flip-normals";
+import "./ctrlmap";
