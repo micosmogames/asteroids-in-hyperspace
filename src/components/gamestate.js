@@ -71,14 +71,16 @@ aframe.registerComponent('gamestate', {
     evt.detail.disperseEvent(evt, this); // Disperse event back to me
   }),
 
-  enterLoading(evt) {
+  enterLoading() {
     startElement(this.SplashScreen); startElement(this.Player);
     this.compHeadless.startRaycaster('.cursor-splash');
   },
-  exitLoading(evt) {
+  exitLoading() {
     stopElement(this.SplashScreen);
     this.compHeadless.stopRaycaster();
   },
+  recenterLoading() { recenterElement(this, this.SplashScreen) },
+
   enterMainMenu() {
     this.Jukebox.setAttribute('jukebox', 'state', 'pause');
     this.GameBoard.object3D.visible = true;
@@ -89,6 +91,8 @@ aframe.registerComponent('gamestate', {
     stopElement(this.MainMenu);
     this.compHeadless.stopRaycaster();
   },
+  recenterMainMenu() { recenterElement(this, this.MainMenu) },
+
   enterNewgame() {
     this.Jukebox.setAttribute('jukebox', 'state', 'on');
     this.GameBoard.object3D.visible = true;
@@ -102,6 +106,8 @@ aframe.registerComponent('gamestate', {
     this.Env1.object3D.visible = false;
     this.compHeadless.stopRaycaster();
   },
+  recenterNewgame() { recenterElement(this, this.Gameboard) },
+
   enterPause() {
     startElement(this.PauseGame);
     this.jukeboxState = this.Jukebox.components.jukebox.data.state;
@@ -114,17 +120,9 @@ aframe.registerComponent('gamestate', {
       this.Jukebox.setAttribute('jukebox', 'state', 'on');
     this.compHeadless.stopRaycaster();
   },
+  recenterPause() { recenterElement(this, this.PauseGame) },
+
   /*
-    gamestatechanged: bindEvent({ target: '[game-state]' }, function (evt) {
-      const newState = evt.detail;
-      switch (newState) {
-      case 'MainMenu':
-        triggerCacheTimeout = 0;
-        cursorEl.setAttribute('raycaster', {
-          objects: '.cursor-menu',
-          interval: 125
-        });
-        break;
       case 'Playing':
         triggerCacheTimeout = 1000;
         cursorEl.setAttribute('raycaster', {
@@ -132,37 +130,16 @@ aframe.registerComponent('gamestate', {
           interval: 0
         });
         break;
-      case 'GameOver':
-        triggerCacheTimeout = 0;
-        cursorEl.setAttribute('raycaster', {
-          objects: '.cursor-gameover',
-          interval: 125
-        });
-        break;
-      default:
-        triggerCacheTimeout = 0;
-        cursorEl.setAttribute('raycaster', {
-          objects: '.cursor-none',
-          interval: 10000
-        });
-        break;
-      }
-    }),
-    pauseStarted: bindEvent({ target: '[game-state]' }, function (evt) {
-      Object.assign(lastRaycasterData, cursorEl.components.raycaster.data);
-      cursorEl.setAttribute('raycaster', {
-        objects: '.cursor-paused',
-        interval: 500
-      });
-    }),
-    pauseEnded: bindEvent({ target: '[game-state]' }, function (evt) {
-      cursorEl.setAttribute('raycaster', {
-        objects: lastRaycasterData.objects,
-        interval: lastRaycasterData.interval
-      });
-    }),
   */
 
+  keydown_Test(id, kc, evt) {
+    console.log('TestKeys', id, kc, evt);
+    return false;
+  },
+  keyup_Test(id, kc, evt) {
+    console.log('TestKeys', id, kc, evt);
+    return false;
+  },
   keydown_Pause() {
     this.compStates.call('Pause');
     return true;
@@ -219,6 +196,11 @@ function startElement(el) {
 function stopElement(el) {
   el.object3D.visible = false;
   el.pause();
+}
+
+function recenterElement(gs, el) {
+  if (gs.recentering) el.pause();
+  else el.play();
 }
 
 window.newgame = () => {

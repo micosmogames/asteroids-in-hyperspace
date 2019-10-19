@@ -1,19 +1,22 @@
 import aframe from "aframe";
 import { bindEvent } from "aframe-event-decorators";
-import { onLoadedDo } from "@micosmo/aframe/startup";
+import { onLoadedDo, afterLoadedDo } from "@micosmo/aframe/startup";
+import { startProcess } from "@micosmo/ticker/aframe-ticker";
 
 export const ControlMap = getControlMap();
 export const ControllerMap = getControllerMap();
+
+const RecenterContext = { action: 'recenter' };
 
 aframe.registerSystem("game-controller", {
   init() {
     this.controllers = Object.create(null);
     this.attachedControllers = Object.create(null);
   },
-  addController(gc) { this.controllers[gc.data] = gc },
-  removeController(gc) { delete this.controllers[gc.data]; delete this.attachedControllers[gc.data] },
-  addAttachedController(gc) { this.attachedControllers[gc.data] = gc },
-  removeAttachedController(gc) { delete this.attachedControllers[gc.data] },
+  addController(gc) { this.controllers[gc.data.hand] = gc },
+  removeController(gc) { delete this.controllers[gc.data.hand]; delete this.attachedControllers[gc.data.hand] },
+  addAttachedController(gc) { this.attachedControllers[gc.data.hand] = gc },
+  removeAttachedController(gc) { delete this.attachedControllers[gc.data.hand] },
   addListeners(comp, ...ctrlSpecs) {
     onLoadedDo(() => {
       if (!comp.el.components.ctrlmap) {
@@ -29,7 +32,7 @@ aframe.registerSystem("game-controller", {
       if (!comp.el.components.ctrlmap)
         return;
       //      console.log('micosmo:system:game-controller:tryAddListeners: Processing ctrlmap for', comp.attrName, ctrlSpecs, comp.el.components.ctrlmap.mappings);
-      addListeners(comp.el.components.keymap, comp, ctrlSpecs)
+      addListeners(comp.el.components.ctrlmap, comp, ctrlSpecs)
     });
   },
   removeListeners(comp, ...ids) {
@@ -70,14 +73,15 @@ export function removeListeners(cm, comp, ids) {
       ctrlData.events.forEach(event => {
         const actEvent = `${ctrlData.actual}${event}`;
         // Map listener record to the supporting controllers.
-        gcSys.controllers.forEach(gc => {
-          if (!ctrlEnt[gc.data]) return; // Our logical control does not map to this game controller.
+        for (var hand in gcSys.controllers) {
+          const gc = gcSys.controllers[hand];
+          if (!ctrlEnt[gc.data.hand]) continue; // Our logical control does not map to this game controller.
           const records = gc.gameListeners.get(actEvent);
           if (records) {
             const i = records.findIndex(l => l.comp === comp && l.id === id);
             if (i >= 0) records.splice(i, 1);
           }
-        })
+        }
       })
     });
   });
@@ -89,17 +93,20 @@ function mapToControllers(gcSys, cm, comp, spec, ctrl) {
     const listener = getListener(comp, spec, event);
     if (!listener) return;
     const actEvent = `${ctrlData.actual}${event}`;
-    const gameListener = { cm, comp, id: spec.id, event, actEvent, listener };
     // Map listener record to the supporting controllers.
-    gcSys.controllers.forEach(gc => {
-      if (!ctrlEnt[gc.data]) return; // Our logical control does not map to this game controller.
+    for (var hand in gcSys.controllers) {
+      const gc = gcSys.controllers[hand];
+      if (!ctrlEnt[gc.data.hand]) continue; // Our logical control does not map to this game controller.
+      const gameListener = { gc, cm, comp, id: spec.id, event, actEvent, listener };
+      console.log('mapToController', gc.data.hand, gameListener);
       addGameListener(gc, gameListener);
       // Make sure our game controller can handle this event
-      if (gc.controllerListeners[actEvent]) return;
+      if (gc.controllerListeners[actEvent]) continue;
       gc.controllerListeners[actEvent] = evt => dispatchEvent(gc, evt, actEvent);
+      console.log('mapToController:ControllerListener', gc.data.hand, actEvent);
       if (gc.controllerPresent)
         gc.el.addEventListener(actEvent, gc.controllerListeners[actEvent]);
-    })
+    }
   })
 }
 
@@ -127,7 +134,7 @@ function dispatchEvent(gc, evt, actEvent) {
   if (!records) return false;
   for (var gameListener of records) {
     if (gameListener.cm.isPaused) continue; // Ignore paused ctrlmaps
-    if (gameListener.listener(gameListener.id, gameListener.event, evt)) {
+    if (gameListener.listener(evt, gameListener.gc, gameListener.event)) {
       // Event has been captured, go no further
       return true;
     }
@@ -136,250 +143,71 @@ function dispatchEvent(gc, evt, actEvent) {
 }
 
 aframe.registerComponent("game-controller", {
-  schema: { default: "left" },
+  schema: {
+    hand: { default: "left" }
+  },
   init() {
+    this.RecenterEl = this.el.sceneEl.querySelector('[recenter]');
     this.gameListeners = new Map();
     this.controllerListeners = Object.create(null);
     this.controllerPresent = false;
-  },
-  /*
-  init() {
-    const el = this.el;
-    // Active buttons populated by events provided by the attached controls.
-    this.pressedButtons = {};
-    this.touchedButtons = {};
-
-    this.onGripDown = () => { this.handleButton("grip", "down") };
-    this.onGripUp = () => { this.handleButton("grip", "up") };
-    this.onTrackpadDown = () => { this.handleButton("trackpad", "down") };
-    this.onTrackpadUp = () => { this.handleButton("trackpad", "up") };
-    this.onTrackpadTouchStart = () => { this.handleButton("trackpad", "touchstart") };
-    this.onTrackpadTouchEnd = () => { this.handleButton("trackpad", "touchend") };
-    this.onTriggerDown = () => { this.handleButton("trigger", "down") };
-    this.onTriggerUp = () => { this.handleButton("trigger", "up") };
-    this.onTriggerTouchStart = () => { this.handleButton("trigger", "touchstart") };
-    this.onTriggerTouchEnd = () => { this.handleButton("trigger", "touchend") };
-    this.onGripTouchStart = () => { this.handleButton("grip", "touchstart") };
-    this.onGripTouchEnd = () => { this.handleButton("grip", "touchend") };
-    this.onThumbstickDown = () => { this.handleButton("pause", "down") };
-    this.onThumbstickUp = () => { this.handleButton("pause", "up") };
-    this.onMenuDown = () => { this.handleButton("pause", "down") };
-    this.onMenuUp = () => { this.handleButton("pause", "up") };
-    this.onAorXTouchStart = () => { this.handleButton("AorX", "touchstart") };
-    this.onAorXTouchEnd = () => { this.handleButton("AorX", "touchend") };
-    this.onBorYTouchStart = () => { this.handleButton("BorY", "touchstart") };
-    this.onBorYTouchEnd = () => { this.handleButton("BorY", "touchend") };
-    this.onSurfaceTouchStart = () => { this.handleButton("surface", "touchstart") };
-    this.onSurfaceTouchEnd = () => { this.handleButton("surface", "touchend") };
-    this.onAorXDown = () => { this.handleButton("AorX", "down") };
-
-    // Specialised events to handle special game states
-    this.onEndRecentering = () => { this.handleEndRecenter("grip", "up") };
-    this.onEndGamePause = function () {
-      this.handleEndGamePause("pause", "down");
-    };
-    this.onPauseGripDown = function () {
-      this.isRecentering = true;
-    };
-    this.onPauseGripUp = function () {
-      this.isRecentering = false;
-    };
-
-    this.player = document.querySelector("#player");
-    // Save all the registered game controllers in the player.
-    if (!this.player.game_controllers)
-      this.player.game_controllers = [this];
-    else
-      this.player.game_controllers.push(this);
-    // Get the element that owns the 'game-state' property.
-    this.gameState = document.querySelector("[game-state]");
-    // Grab the game pause element to display if explicit pause requested.
-    this.gamePaused = document.querySelector('#gamePaused');
-
-    this.isRecentering = false;
     this.ready = false;
+    this.system.tryAddListeners(this);
+    afterLoadedDo(() => {
+      this.ready = true;
+      if (this.controllerPresent)
+        addEventListeners(this);
+    });
   },
-  */
   update(oldData) {
-    if (oldData) {
-      if (oldData !== this.data)
-        throw new Error(`micosmo:component:game-controller:update: Update to '${this.data}' is not supported`);
-      return;
+    if (this.ready)
+      throw new Error(`micosmo:component:game-controller:update: Updates are not supported`);
+    if (oldData.hand !== this.data.hand) {
+      const el = this.el;
+      // Get common configuration to abstract different vendor controls.
+      const controlConfiguration = { hand: this.data.hand, model: true };
+      el.setAttribute("vive-controls", controlConfiguration);
+      el.setAttribute("oculus-touch-controls", controlConfiguration);
+      el.setAttribute("windows-motion-controls", controlConfiguration);
+      this.system.addController(this);
     }
-    const el = this.el;
-    // Get common configuration to abstract different vendor controls.
-    const controlConfiguration = { hand: this.data, model: true };
-    el.setAttribute("vive-controls", controlConfiguration);
-    el.setAttribute("oculus-touch-controls", controlConfiguration);
-    el.setAttribute("windows-motion-controls", controlConfiguration);
-    this.system.addController(this);
   },
   remove() {
     this.system.removeController(this);
   },
   controllerconnected: bindEvent(function (evt) {
-    console.info(`micosmo:component:game-controller: ${this.data} controller connected`);
+    console.info(`micosmo:component:game-controller: ${this.data.hand} controller connected`);
     this.el.object3D.visible = true;
     this.controllerPresent = true;
     this.system.addAttachedController(this);
-    addEventListeners(this);
+    if (this.ready)
+      addEventListeners(this);
   }),
   controllerdisconnected: bindEvent(function (evt) {
-    console.info(`micosmo:component:game-controller: ${this.data} controller disconnected`);
+    console.info(`micosmo:component:game-controller: ${this.data.hand} controller disconnected`);
     this.el.object3D.visible = false;
     this.controllerPresent = false;
-    removeEventListeners(this);
+    if (this.ready)
+      removeEventListeners(this);
     this.system.removeAttachedController(this);
   }),
 
-  startCentering: function () {
-    /*
-    this.pauseControllers(this.onEndRecentering, "gripup");
-    this.gamePausedEl.emit('startPause', {
-      displayPause: false,
-      endCallback: () => {
-        this.isRecentering = false;
-        this.playControllers(this.onEndRecentering, "gripup");
-      }
-    });
-    */
-    this.isRecentering = true;
+  grip_down() {
+    // From state gets a recenter action. Allows simple flip flop of pause.
+    if (!this.RecenterEl)
+      return false;
+    this.recentering = true;
+    this.el.sceneEl.components.states.call('Recenter', RecenterContext);
+    this.recenterProcess = startProcess(() => { this.RecenterEl.components.recenter.around(this.el); return 'more' })
   },
-
-  endCentering: function () {
-    this.isRecentering = false;
-    /*
-    this.gamePausedEl.emit('endPause', { displayPause: false });
-    this.playControllers(this.onEndRecentering, "gripup");
-    */
+  grip_up() {
+    // Return state gets another recenter action. Allows simple flip of pause.
+    if (!this.recentering)
+      return false;
+    this.recenterProcess.stop();
+    this.recentering = false;
+    this.el.sceneEl.components.states.return(undefined, undefined, RecenterContext);
   },
-
-  startGamePause: function () {
-    this.pauseControllers(this.onEndGamePause, "thumbstickdown", "menudown");
-    this.el.addEventListener("gripdown", this.onPauseGripDown);
-    this.el.addEventListener("gripup", this.onPauseGripUp);
-    this.gamePausedEl.emit('startPause', {
-      displayPause: true,
-      endCallback: () => {
-        this.el.removeEventListener("gripdown", this.onPauseGripDown);
-        this.el.removeEventListener("gripup", this.onPauseGripUp);
-        this.playControllers(this.onEndGamePause, "thumbstickdown", "menudown");
-      }
-    });
-  },
-
-  endGamePause: function () {
-    this.gamePausedEl.emit('endPause', { displayPause: true });
-    this.el.removeEventListener("gripdown", this.onPauseGripDown);
-    this.el.removeEventListener("gripup", this.onPauseGripUp);
-    this.playControllers(this.onEndGamePause, "thumbstickdown", "menudown");
-  },
-
-  pauseControllers(endFn, endEvt1, endEvt2) {
-    this.playerEl.game_controllers.forEach(gc => {
-      gc.removeEventListeners();
-      gc.el.addEventListener(endEvt1, endFn);
-      if (endEvt2)
-        gc.el.addEventListener(endEvt2, endFn);
-    });
-  },
-
-  playControllers(endFn, endEvt1, endEvt2) {
-    this.playerEl.game_controllers.forEach(gc => {
-      gc.el.removeEventListener(endEvt1, endFn);
-      if (endEvt2)
-        gc.el.removeEventListener(endEvt2, endFn);
-      gc.addEventListeners();
-    });
-  },
-
-  tick: function (time, delta) {
-    if (this.isRecentering) {
-      this.playerEl.components.recenter.around(this.el);
-    }
-    /*
-    const isOculus = this.el.components["oculus-touch-controls"]
-      .controllerPresent;
-    if (!this.oculusInstructionsSet && isOculus) {
-      document
-        .querySelector("#launchOmegaInstructions")
-        .setAttribute(
-          "text__omega",
-          "value",
-          "A      OR      X      BUTTONS      TO      LAUNCH      OMEGA      MISSILE"
-        );
-      this.oculusInstructionsSet = true;
-    }
-    */
-    /*
-        var mesh = this.el.getObject3D("mesh");
-
-        if (!mesh || !mesh.mixer) {
-          return;
-        }
-
-        mesh.mixer.update(delta / 1000);
-    */
-  },
-  /*
-  gamestatechanged: bindEvent({ target: "[game-state]" }, function (evt) {
-    const newState = evt.detail;
-    if (newState === 'Loading') {
-      this.ready = true;
-    }
-  }),
-  */
-
-  /**
-   *
-   * @param {string} button - Name of the button.
-   * @param {string} evt - Type of event for the button (i.e., down/up/touchstart/touchend).
-   */
-  handleButton: function (button, evt) {
-    if (!this.ready) return;
-    /*
-    const isAdvancedControls = this.gameStateEl.components["game-state"].isAdvancedControls();
-    if (button.indexOf("trigger") === 0 && evt.indexOf("down") === 0) {
-      this.el.components["launch-controls"].launch(isAdvancedControls);
-    } else if (
-      (button.indexOf("trackpad") === 0 || button.indexOf("AorX") === 0) &&
-      evt.indexOf("down") === 0 &&
-      isAdvancedControls
-    ) {
-      this.el.components["launch-controls"].launchOmega();
-    */
-    if (button.indexOf("grip") === 0 && evt.indexOf("down") === 0) {
-      // Have a problem with the Oculus Rift sending 'down' events before
-      // 'touchstart' events. Results in the 'isRecentering' flag being
-      // cleared straight after we set it.
-      // Changed to explicitly handle 'down' and 'up' events only
-      // Recentering handled by separate event handler
-      this.startCentering();
-    }
-    /*
-    } else if (button.indexOf("pause") === 0 && evt.indexOf("down") === 0) {
-      // Game pause handled by separate event handler
-      // Use thumbstick on Oculus Touch and menu button on Vive
-      this.startGamePause();
-    }
-    */
-  },
-
-  handleEndRecenter: function (button, evt) {
-    if (button.indexOf("grip") === 0 && evt.indexOf("up") === 0) {
-      // Only accept gripup events. Ignore anything else which shouldn't happen.
-      this.endCentering();
-    }
-  },
-
-  handleEndGamePause: function (button, evt) {
-    if (button.indexOf("pause") === 0 && evt.indexOf("down") === 0) {
-      // Only accept thumbstickdown or systemdown events.
-      // Ignore anything else which shouldn't happen.
-
-      //      this.endGamePause();
-    }
-  }
 });
 
 function addEventListeners(gc) {
