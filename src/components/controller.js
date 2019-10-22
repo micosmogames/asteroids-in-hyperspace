@@ -1,29 +1,28 @@
 import aframe from "aframe";
 import { bindEvent } from "aframe-event-decorators";
+import { requestObject, returnObject, removeIndex } from "@micosmo/core/object";
 import { onLoadedDo, afterLoadedDo } from "@micosmo/aframe/startup";
 import { startProcess } from "@micosmo/ticker/aframe-ticker";
 
 export const ControlMap = getControlMap();
 export const ControllerMap = getControllerMap();
 
-const RecenterContext = { action: 'recenter' };
-
-aframe.registerSystem("game-controller", {
+aframe.registerSystem("controller", {
   init() {
     this.controllers = Object.create(null);
     this.attachedControllers = Object.create(null);
   },
-  addController(gc) { this.controllers[gc.data.hand] = gc },
-  removeController(gc) { delete this.controllers[gc.data.hand]; delete this.attachedControllers[gc.data.hand] },
-  addAttachedController(gc) { this.attachedControllers[gc.data.hand] = gc },
-  removeAttachedController(gc) { delete this.attachedControllers[gc.data.hand] },
+  addController(ctlr) { this.controllers[ctlr.data.hand] = ctlr },
+  removeController(ctlr) { delete this.controllers[ctlr.data.hand]; delete this.attachedControllers[ctlr.data.hand] },
+  addAttachedController(ctlr) { this.attachedControllers[ctlr.data.hand] = ctlr },
+  removeAttachedController(ctlr) { delete this.attachedControllers[ctlr.data.hand] },
   addListeners(comp, ...ctrlSpecs) {
     onLoadedDo(() => {
       if (!comp.el.components.ctrlmap) {
-        console.warn(`micosmo:system:game-controller:addListeners: Missing ctrlmap component for element '${comp.el.id || '<anonymous>'}'`);
+        console.warn(`micosmo:system:controller:addListeners: Missing ctrlmap component for element '${comp.el.id || '<anonymous>'}'`);
         return;
       }
-      //      console.log('micosmo:system:game-controller:addListeners: Processing ctrlmap for', comp.attrName, ctrlSpecs, comp.el.components.ctrlmap.mappings);
+      //      console.log('micosmo:system:controller:addListeners: Processing ctrlmap for', comp.attrName, ctrlSpecs, comp.el.components.ctrlmap.mappings);
       addListeners(comp.el.components.ctrlmap, comp, ctrlSpecs)
     });
   },
@@ -31,7 +30,7 @@ aframe.registerSystem("game-controller", {
     onLoadedDo(() => {
       if (!comp.el.components.ctrlmap)
         return;
-      //      console.log('micosmo:system:game-controller:tryAddListeners: Processing ctrlmap for', comp.attrName, ctrlSpecs, comp.el.components.ctrlmap.mappings);
+      //      console.log('micosmo:system:controller:tryAddListeners: Processing ctrlmap for', comp.attrName, ctrlSpecs, comp.el.components.ctrlmap.mappings);
       addListeners(comp.el.components.ctrlmap, comp, ctrlSpecs)
     });
   },
@@ -42,7 +41,7 @@ aframe.registerSystem("game-controller", {
 });
 
 export function addListeners(cm, comp, ctrlSpecs) {
-  const gcSys = comp.el.sceneEl.systems['game-controller'];
+  const sysCtlr = comp.el.sceneEl.systems.controller;
   const idMap = cm.mappings.idMap;
   if (ctrlSpecs.length === 1 && Array.isArray(ctrlSpecs[0]))
     ctrlSpecs = ctrlSpecs[0];
@@ -54,12 +53,55 @@ export function addListeners(cm, comp, ctrlSpecs) {
     const ctrls = idMap[spec.id];
     if (!ctrls)
       return; // No mapping so ignore ctrl id
-    ctrls.forEach(ctrl => mapToControllers(gcSys, cm, comp, spec, ctrl));
+    ctrls.forEach(ctrl => mapToControllers(sysCtlr, cm, comp, spec, ctrl));
   });
 }
 
+function mapToControllers(sysCtlr, cm, comp, spec, ctrl) {
+  const ctrlEnt = ControllerMap[ctrl]; const ctrlData = ControlMap[ctrlEnt.family];
+  ctrlData.events.forEach(event => {
+    const listener = getListener(comp, spec, event);
+    if (!listener) return;
+    const actEvent = `${ctrlData.actual}${event}`;
+    // Map listener record to the supporting controllers.
+    for (var hand in sysCtlr.controllers) {
+      const ctlr = sysCtlr.controllers[hand];
+      if (!ctrlEnt[ctlr.data.hand]) continue; // Our logical control does not map to this game controller.
+      // { ctlr, cm, comp, id: spec.id, event, actEvent, listener };
+      const lr = requestObject();
+      lr.ctlr = ctlr; lr.cm = cm; lr.comp = comp; lr.id = spec.id; lr.event = event; lr.actEvent = actEvent; lr.listener = listener;
+      console.log('mapToController', ctlr.data.hand, lr);
+      addListenerRecord(ctlr, lr);
+      // Make sure our controller can handle this event
+      if (ctlr.controllerListeners[actEvent]) continue;
+      ctlr.controllerListeners[actEvent] = evt => dispatchEvent(ctlr, evt, actEvent);
+      console.log('mapToController:ControllerListener', ctlr.data.hand, actEvent);
+      if (ctlr.controllerPresent)
+        ctlr.el.addEventListener(actEvent, ctlr.controllerListeners[actEvent]);
+    }
+  })
+}
+
+function addListenerRecord(ctlr, listenerRecord) {
+  const records = ctlr.listeners.get(listenerRecord.actEvent);
+  if (records) {
+    const i = records.findIndex(l => l.comp === listenerRecord.comp && l.id === listenerRecord.id);
+    if (i >= 0) { returnObject(records[i]); records[i] = listenerRecord } else records.push(listenerRecord);
+  } else
+    ctlr.listeners.set(listenerRecord.actEvent, [listenerRecord]); // Start a new list for event.
+}
+
+function getListener(comp, spec, sEvt) {
+  const sIdEvt = `${spec.id}_${sEvt}`; const sIdEvt1 = `${spec.id}${sEvt}`;
+  var fEvt = spec[sEvt];
+  if (fEvt) return fEvt;
+  if ((fEvt = comp[sIdEvt] && comp[sIdEvt].bind(comp))) return fEvt; // Ex. grip_up
+  if ((fEvt = comp[sIdEvt1] && comp[sIdEvt1].bind(comp))) return fEvt; // Ex. gripup
+  return comp[spec.id] && comp[spec.id].bind(comp); // Ex. grip
+}
+
 export function removeListeners(cm, comp, ids) {
-  const gcSys = comp.el.sceneEl.systems['game-controller'];
+  const sysCtlr = comp.el.sceneEl.systems.controller;
   const idMap = cm.mappings.idMap;
   if (ids.length === 1 && Array.isArray(ids[0]))
     ids = ids[0];
@@ -73,13 +115,13 @@ export function removeListeners(cm, comp, ids) {
       ctrlData.events.forEach(event => {
         const actEvent = `${ctrlData.actual}${event}`;
         // Map listener record to the supporting controllers.
-        for (var hand in gcSys.controllers) {
-          const gc = gcSys.controllers[hand];
-          if (!ctrlEnt[gc.data.hand]) continue; // Our logical control does not map to this game controller.
-          const records = gc.gameListeners.get(actEvent);
+        for (var hand in sysCtlr.controllers) {
+          const ctlr = sysCtlr.controllers[hand];
+          if (!ctrlEnt[ctlr.data.hand]) continue; // Our logical control does not map to this game controller.
+          const records = ctlr.listeners.get(actEvent);
           if (records) {
             const i = records.findIndex(l => l.comp === comp && l.id === id);
-            if (i >= 0) records.splice(i, 1);
+            if (i >= 0) returnObject(removeIndex(records, i));
           }
         }
       })
@@ -87,54 +129,13 @@ export function removeListeners(cm, comp, ids) {
   });
 }
 
-function mapToControllers(gcSys, cm, comp, spec, ctrl) {
-  const ctrlEnt = ControllerMap[ctrl]; const ctrlData = ControlMap[ctrlEnt.family];
-  ctrlData.events.forEach(event => {
-    const listener = getListener(comp, spec, event);
-    if (!listener) return;
-    const actEvent = `${ctrlData.actual}${event}`;
-    // Map listener record to the supporting controllers.
-    for (var hand in gcSys.controllers) {
-      const gc = gcSys.controllers[hand];
-      if (!ctrlEnt[gc.data.hand]) continue; // Our logical control does not map to this game controller.
-      const gameListener = { gc, cm, comp, id: spec.id, event, actEvent, listener };
-      console.log('mapToController', gc.data.hand, gameListener);
-      addGameListener(gc, gameListener);
-      // Make sure our game controller can handle this event
-      if (gc.controllerListeners[actEvent]) continue;
-      gc.controllerListeners[actEvent] = evt => dispatchEvent(gc, evt, actEvent);
-      console.log('mapToController:ControllerListener', gc.data.hand, actEvent);
-      if (gc.controllerPresent)
-        gc.el.addEventListener(actEvent, gc.controllerListeners[actEvent]);
-    }
-  })
-}
-
-function addGameListener(gc, gameListener) {
-  const records = gc.gameListeners.get(gameListener.actEvent);
-  if (records) {
-    const i = records.findIndex(l => l.comp === gameListener.comp && l.id === gameListener.id);
-    records[i < 0 ? records.length : i] = gameListener; // Update or add to the end
-  } else
-    gc.gameListeners.set(gameListener.actEvent, [gameListener]); // Start a new list for event.
-}
-
-function getListener(comp, spec, sEvt) {
-  const sIdEvt = `${spec.id}_${sEvt}`; const sIdEvt1 = `${spec.id}${sEvt}`;
-  var fEvt = spec[sEvt];
-  if (fEvt) return fEvt;
-  if ((fEvt = comp[sIdEvt] && comp[sIdEvt].bind(comp))) return fEvt; // Ex. grip_up
-  if ((fEvt = comp[sIdEvt1] && comp[sIdEvt1].bind(comp))) return fEvt; // Ex. gripup
-  return comp[spec.id] && comp[spec.id].bind(comp); // Ex. grip
-}
-
-function dispatchEvent(gc, evt, actEvent) {
-  if (!gc.controllerPresent) return;
-  const records = gc.gameListeners.get(actEvent);
+function dispatchEvent(ctlr, evt, actEvent) {
+  if (!ctlr.controllerPresent) return;
+  const records = ctlr.listeners.get(actEvent);
   if (!records) return false;
-  for (var gameListener of records) {
-    if (gameListener.cm.isPaused) continue; // Ignore paused ctrlmaps
-    if (gameListener.listener(evt, gameListener.gc, gameListener.event)) {
+  for (var listenerRecord of records) {
+    if (listenerRecord.cm.isPaused) continue; // Ignore paused ctrlmaps
+    if (listenerRecord.listener(evt, listenerRecord.ctlr, listenerRecord.event)) {
       // Event has been captured, go no further
       return true;
     }
@@ -142,17 +143,18 @@ function dispatchEvent(gc, evt, actEvent) {
   return false;
 }
 
-aframe.registerComponent("game-controller", {
+aframe.registerComponent("controller", {
   schema: {
     hand: { default: "left" }
   },
   init() {
-    this.RecenterEl = this.el.sceneEl.querySelector('[recenter]');
-    this.gameListeners = new Map();
+    this.Recenter = this.el.sceneEl.querySelector('[recenter]');
+    this.listeners = new Map();
     this.controllerListeners = Object.create(null);
     this.controllerPresent = false;
     this.ready = false;
-    this.system.tryAddListeners(this);
+    if (this.Recenter)
+      this.system.tryAddListeners(this);
     afterLoadedDo(() => {
       this.ready = true;
       if (this.controllerPresent)
@@ -161,7 +163,7 @@ aframe.registerComponent("game-controller", {
   },
   update(oldData) {
     if (this.ready)
-      throw new Error(`micosmo:component:game-controller:update: Updates are not supported`);
+      throw new Error(`micosmo:component:controller:update: Updates are not supported`);
     if (oldData.hand !== this.data.hand) {
       const el = this.el;
       // Get common configuration to abstract different vendor controls.
@@ -176,7 +178,7 @@ aframe.registerComponent("game-controller", {
     this.system.removeController(this);
   },
   controllerconnected: bindEvent(function (evt) {
-    console.info(`micosmo:component:game-controller: ${this.data.hand} controller connected`);
+    console.info(`micosmo:component:controller: ${this.data.hand} controller connected`);
     this.el.object3D.visible = true;
     this.controllerPresent = true;
     this.system.addAttachedController(this);
@@ -184,7 +186,7 @@ aframe.registerComponent("game-controller", {
       addEventListeners(this);
   }),
   controllerdisconnected: bindEvent(function (evt) {
-    console.info(`micosmo:component:game-controller: ${this.data.hand} controller disconnected`);
+    console.info(`micosmo:component:controller: ${this.data.hand} controller disconnected`);
     this.el.object3D.visible = false;
     this.controllerPresent = false;
     if (this.ready)
@@ -192,34 +194,28 @@ aframe.registerComponent("game-controller", {
     this.system.removeAttachedController(this);
   }),
 
-  grip_down() {
-    // From state gets a recenter action. Allows simple flip flop of pause.
-    if (!this.RecenterEl)
-      return false;
-    this.recentering = true;
-    this.el.sceneEl.components.states.call('Recenter', RecenterContext);
-    this.recenterProcess = startProcess(() => { this.RecenterEl.components.recenter.around(this.el); return 'more' })
+  recenter_down() {
+    this.el.sceneEl.emit('startrecenter', undefined, false);
+    this.recenterProcess = startProcess(() => { this.Recenter.components.recenter.around(this.el); return 'more' })
+    return true;
   },
-  grip_up() {
-    // Return state gets another recenter action. Allows simple flip of pause.
-    if (!this.recentering)
-      return false;
+  recenter_up() {
     this.recenterProcess.stop();
-    this.recentering = false;
-    this.el.sceneEl.components.states.return(undefined, undefined, RecenterContext);
+    this.el.sceneEl.emit('endrecenter', undefined, false);
+    return true;
   },
 });
 
-function addEventListeners(gc) {
-  const el = gc.el;
-  for (var event in gc.controllerListeners)
-    el.addEventListener(event, gc.controllerListeners[event]);
+function addEventListeners(ctlr) {
+  const el = ctlr.el;
+  for (var event in ctlr.controllerListeners)
+    el.addEventListener(event, ctlr.controllerListeners[event]);
 }
 
-function removeEventListeners(gc) {
-  const el = gc.el;
-  for (var event in gc.controllerListeners)
-    el.removeEventListener(event, gc.controllerListeners[event]);
+function removeEventListeners(ctlr) {
+  const el = ctlr.el;
+  for (var event in ctlr.controllerListeners)
+    el.removeEventListener(event, ctlr.controllerListeners[event]);
 }
 
 function getControlMap() {

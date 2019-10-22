@@ -9,7 +9,7 @@ import "./shadeless-recursive";
 import "./outline";
 import "./logger";
 import "./headless-controller";
-import "./game-controller";
+import "./controller";
 import "./recenter";
 import "./flip-normals";
 import "./ctrlmap";

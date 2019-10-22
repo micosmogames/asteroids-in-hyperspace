@@ -5,18 +5,11 @@ import * as ticker from '@micosmo/ticker/aframe-ticker';
 import { onLoadedDo } from '@micosmo/aframe/startup';
 import { bindEvent } from 'aframe-event-decorators/event-binder';
 import { isVisibleInScene } from '@micosmo/aframe/lib/utils';
-import { declareMethods, method, requestObject, returnObject } from '@micosmo/core';
+import { declareMethods, method, requestObject, returnObject, removeValue } from '@micosmo/core';
 
 declareMethods(triggerUp, fTriggerCacheTimeout);
 
-var flHMDDetected = undefined; // Require 3 checkable states.
-var cursorEl, cameraEl, targetEl, triggerEl;
-var triggerCache;
-var initialised = false;
-
-const cursorCameraPosition = new THREE.Vector3();
-const saveCameraPosition = new THREE.Vector3();
-const cameraAdjustment = new THREE.Vector3(0, 0, 0);
+const MotionKeys = ['yup', 'ydown', 'xleft', 'xright', 'zin', 'zout'];
 
 aframe.registerComponent("headless-controller", {
   schema: {
@@ -28,47 +21,57 @@ aframe.registerComponent("headless-controller", {
   },
   dependencies: ['cursor', 'raycaster', 'geometry', 'material'],
   init() {
-    if (initialised)
+    if (this.el.sceneEl.querySelectorAll('[headless-controller]').length > 1)
       throw new Error(`micosmo:component:headless-controller:init: Only one headless-controller permitted`);
-    cursorEl = this.el;
-    cameraEl = this.el.sceneEl.querySelector('[camera]');
-    this.el.sceneEl.systems.keyboard.addListeners(this);
+    this.Recenter = this.el.sceneEl.querySelector('[recenter]');
+    if (this.Recenter)
+      this.el.sceneEl.systems.keyboard.addListeners(this, 'Recenter');
+
+    this.flHMDDetected = undefined; // Require 3 checkable states.
+    this.Cursor = this.el;
+    this.Camera = this.el.sceneEl.querySelector('[camera]');
+    this.targetEl = this.triggerEl = this.triggerCache = undefined;
+    this.cursorCameraPosition = new THREE.Vector3();
+    this.saveCameraPosition = new THREE.Vector3();
+    this.cameraAdjustment = new THREE.Vector3(0, 0, 0);
+
+    this.triggers = ['Trigger'];
+    this.el.sceneEl.systems.keyboard.addListeners(this, this.triggers);
     onLoadedDo(() => {
-      headlessReady();
-      cursorCameraPosition.copy(cameraEl.object3D.position);
-      saveCameraPosition.copy(cursorCameraPosition);
+      headlessReady(this);
+      this.cursorCameraPosition.copy(this.Camera.object3D.position);
+      this.saveCameraPosition.copy(this.cursorCameraPosition);
     });
     this.triggerTimer = ticker.createProcess(ticker.msWaiter(100, method(triggerUp).bind(this)));
     this.triggerCacheTimeout = ticker.createProcess(method(fTriggerCacheTimeout).bind(this));
-    initialised = true;
   },
   update(oldData) {
     if (oldData.rayClass !== this.data.rayClass) {
-      cursorEl.setAttribute('raycaster', { objects: this.data.rayClass, interval: this.data.rayInterval });
+      this.Cursor.setAttribute('raycaster', { objects: this.data.rayClass, interval: this.data.rayInterval });
     }
     if (oldData.cameraAdjust !== this.data.cameraAdjust) {
       const v = this.data.cameraAdjust;
-      cameraAdjustment.set(v.x, v.y, v.z);
+      this.cameraAdjustment.set(v.x, v.y, v.z);
     }
     if (oldData.triggers !== this.data.triggers) {
-      this.el.sceneEl.systems.keyboard.removeListeners(this);
+      this.el.sceneEl.systems.keyboard.removeListeners(this, this.triggers);
       applyOtherTriggers(this, oldData.triggers, this.data.triggers);
-      this.el.sceneEl.systems.keyboard.addListeners(this);
+      this.el.sceneEl.systems.keyboard.addListeners(this, this.triggers);
     }
   },
   hasHMD() {
-    return flHMDDetected;
+    return this.flHMDDetected;
   },
   toggleCursor() {
-    if (cursorEl.components.raycaster.data.enabled) {
-      cursorEl.object3D.visible = false;
-      cameraEl.object3D.position.copy(saveCameraPosition);
-      cursorEl.setAttribute('raycaster', 'enabled', 'false');
+    if (this.Cursor.components.raycaster.data.enabled) {
+      this.Cursor.object3D.visible = false;
+      this.Camera.object3D.position.copy(this.saveCameraPosition);
+      this.Cursor.setAttribute('raycaster', 'enabled', 'false');
     } else {
-      cursorEl.object3D.visible = true;
-      saveCameraPosition.copy(cameraEl.object3D.position);
-      cameraEl.object3D.position.add(cameraAdjustment);
-      cursorEl.setAttribute('raycaster', 'enabled', 'true');
+      this.Cursor.object3D.visible = true;
+      this.saveCameraPosition.copy(this.Camera.object3D.position);
+      this.Camera.object3D.position.add(this.cameraAdjustment);
+      this.Cursor.setAttribute('raycaster', 'enabled', 'true');
     }
   },
   startRaycaster(...args) { setRaycaster(this, ...args) },
@@ -86,7 +89,47 @@ aframe.registerComponent("headless-controller", {
   keydown_Trigger() {
     triggerDown(this, 'Trigger');
     return true;
-  }
+  },
+
+  keydown_Recenter() {
+    if (!this.recentering) {
+      console.log('Start Recentering')
+      this.el.sceneEl.systems.keyboard.addListeners(this, MotionKeys);
+      this.el.sceneEl.emit('startrecenter', undefined, false);
+      this.recenterProcess = ticker.startProcess(() => { this.Recenter.components.recenter.around(this.el); return 'more' })
+    }
+    this.recentering = true;
+    return true;
+  },
+  keyup_Recenter() {
+    if (this.recentering) {
+      console.log('End Recentering')
+      this.recenterProcess.stop();
+      this.el.sceneEl.emit('endrecenter', undefined, false);
+      this.el.sceneEl.systems.keyboard.removeListeners(this, MotionKeys);
+    }
+    this.recentering = false;
+    return true;
+  },
+  keydown_yup() {
+    console.log('yup');
+  },
+  keydown_ydown() {
+    console.log('ydown');
+  },
+  keydown_xleft() {
+    console.log('xleft');
+  },
+  keydown_xright() {
+    console.log('xright');
+  },
+  keydown_zin() {
+    console.log('zin');
+  },
+  keydown_zout() {
+    console.log('zout');
+  },
+
 });
 
 function setRaycaster(hlc, rayClass, interval = 125, cacheTimeout = 0) {
@@ -98,71 +141,71 @@ function setRaycaster(hlc, rayClass, interval = 125, cacheTimeout = 0) {
 
 function applyOtherTriggers(hlc, oldTriggers, newTriggers) {
   if (oldTriggers)
-    oldTriggers.forEach(id => delete hlc[`keydown_${id}`]);
-  newTriggers.forEach(id => { hlc[`keydown_${id}`] = function () { triggerDown(hlc, id); return true; } });
+    oldTriggers.forEach(id => { removeValue(hlc.triggers, id); delete hlc[`keydown_${id}`] });
+  newTriggers.forEach(id => { hlc.triggers.push(id); hlc[`keydown_${id}`] = function () { triggerDown(hlc, id); return true } });
 }
 
 function targetSelected(hlc, evt) {
   const el = evt.detail.intersectedEl;
   if (isVisibleInScene(el)) {
-    targetEl = el;
+    hlc.targetEl = el;
     hlc.el.setAttribute('material', 'color', 'green');
     tryTriggerCache(hlc);
   }
 }
 
 function targetDeselected(hlc) {
-  if (targetEl) {
+  if (hlc.targetEl) {
     tryTriggerCache(hlc);
-    targetEl = undefined;
+    hlc.targetEl = undefined;
   }
   hlc.el.setAttribute('material', 'color', 'red');
 }
 
 function tryTriggerCache(hlc) {
-  if (!triggerCache)
+  if (!hlc.triggerCache)
     return;
-  emitTriggerDown(hlc, targetEl, triggerCache);
-  triggerCache = undefined;
+  emitTriggerDown(hlc, hlc.targetEl, hlc.triggerCache);
+  hlc.triggerCache = undefined;
   hlc.triggerCacheTimeout.stop();
 }
 
 function triggerDown(hlc, key) {
-  if (triggerEl)
+  if (hlc.triggerEl)
     return;
-  if (targetEl) {
-    emitTriggerDown(hlc, targetEl, key);
+  if (hlc.targetEl) {
+    emitTriggerDown(hlc, hlc.targetEl, key);
   } else if (hlc.data.triggerCacheTimeout > 0) {
-    if (!triggerCache)
+    if (!hlc.triggerCache)
       hlc.triggerCacheTimeout.start();
-    triggerCache = key;
+    hlc.triggerCache = key;
   }
 }
 
 function emitTriggerDown(hlc, el, key) {
   const o = requestObject();
   o.triggerEl = el; o.key = key;
-  (triggerEl = el).emit('triggerDown', o, false);
+  (hlc.triggerEl = el).emit('triggerDown', o, false);
   returnObject(o);
   hlc.triggerTimer.start();
 }
 
 method(triggerUp);
 function triggerUp() {
-  if (triggerEl)
-    triggerEl.emit('triggerUp', undefined, false);
-  triggerEl = undefined;
+  if (this.triggerEl)
+    this.triggerEl.emit('triggerUp', undefined, false);
+  this.triggerEl = undefined;
 }
 
 method(fTriggerCacheTimeout);
 function * fTriggerCacheTimeout() {
   yield ticker.msWaiter(this.data.triggerCacheTimeout);
-  triggerCache = undefined;
+  this.triggerCache = undefined;
 }
 
-function headlessReady() {
+function headlessReady(hlc) {
   if (aframe.utils.device.checkHeadsetConnected()) {
-    flHMDDetected = true;
+    hlc.flHMDDetected = true;
     console.info(`system:headless-controller:headlessReady: HMD device detected. Headless controller ready`);
     return;
   }

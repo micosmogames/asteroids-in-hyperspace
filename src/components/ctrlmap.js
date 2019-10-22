@@ -1,5 +1,5 @@
 import aframe from 'aframe';
-import { addListeners, removeListeners, ControllerMap } from "./game-controller";
+import { addListeners, removeListeners, ControllerMap } from "./controller";
 
 aframe.registerComponent("ctrlmap", {
   schema: { default: '' },

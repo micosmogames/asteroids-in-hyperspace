@@ -1,4 +1,4 @@
-<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,Test:&lt;filter&gt;" inspector-events
+<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,Test:<filter>" inspector-events
   fog="type:exponential; color:#040f19; density:0.17" gamma="true"
   gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Recenter">
 
@@ -10,6 +10,9 @@
       dataset__text="|defaults:|color:#000000;wrapCount:10;width:0.070;zOffset:0.007"
       dataset__material="color:#ffffff;emissive:#ffffff;emissiveIntensity:1"
       dataset__collider="layer:ui;collidesWith:cursor;shape:box">
+    </a-datagroup>
+    <a-datagroup id="Motion"
+      dataset__keys="([s])yup:w,ArrowUp; ([s])ydown:s,ArrowDown; ([s])xleft:a,ArrowLeft; ([s])xright:d,ArrowRight; ([s])zin:q,ShiftRight; ([s])zout:e,ControlRight">
     </a-datagroup>
   </a-entity>
 
@@ -119,17 +122,18 @@
   </a-entity>
 
   <!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->
+  <!-- wasd-controls="adAxis:z;wsAxis:y" have taken this out as now support keyboard recentering -->
   <a-entity id="player" recenter="offset: 0, 1.1, -0.2" visible="false">
-    <a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" wasd-controls="adAxis:z;wsAxis:y"
-      look-controls>
+    <a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" look-controls>
       <a-entity id="cursor" cursor="fuseTimeout: 500; rayOrigin: mouse" position="0 0 -0.1"
         raycaster="objects: .cursor-none; interval: 0; enabled: false"
         geometry="primitive: ring; radiusInner: 0.001; radiusOuter: 0.002" material="color: red; shader: flat" `
-        headless-controller="cameraAdjust:0 0.0 -0.3" keymap="Trigger:Space, Trigger:Enter" visible="false">
+        headless-controller="cameraAdjust:0 0.0 -0.3" keymap="|Motion:keys| Recenter:r, Trigger:Space, Trigger:Enter"
+        visible="false">
       </a-entity>
     </a-entity>
-    <a-entity id="leftHand" game-controller="hand:left" ctrlmap="grip:leftgrip" visible="false"></a-entity>
-    <a-entity id="rightHand" game-controller="hand:right" ctrlmap="grip:rightgrip" visible="false"></a-entity>
+    <a-entity id="leftHand" controller="hand:left" ctrlmap="recenter:leftgrip" visible="false"></a-entity>
+    <a-entity id="rightHand" controller="hand:right" ctrlmap="recenter:rightgrip" visible="false"></a-entity>
   </a-entity>
 
   <a-sky color="black"></a-sky>

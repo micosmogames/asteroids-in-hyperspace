@@ -5,28 +5,21 @@ import { bindEvent } from 'aframe-event-decorators';
 import { onLoadedDo } from '@micosmo/aframe/startup';
 import { noVisibilityChecks as noKeyboardVisibilityChecks } from '@micosmo/aframe/keyboard';
 
-const controlsNames = ['Basic', 'Advanced'];
-
-let instance = undefined;
-let initialised = false;
-
-let score = 0;
-const highScore = 0;
-const multiplier = 1;
+const _ = undefined;
 
 aframe.registerComponent('gamestate', {
   schema: {
     state: { default: 'Loading' },
     states: { default: '' },
-    controls: { default: 'Basic', oneOf: controlsNames },
   },
 
   init() {
-    if (instance !== undefined && instance !== this)
-      throw new Error('micosmo:component:gamestate:init: Single instance only');
-    noKeyboardVisibilityChecks(); // Key listeners only inactive if related component is paused.
-    instance = this;
     const scene = this.el.sceneEl;
+    if ((scene.components.gamestate ? 1 : 0) + scene.querySelectorAll('[gamestate]').length > 1)
+      throw new Error('micosmo:component:gamestate:init: Single instance only');
+    this.initialised = false;
+    noKeyboardVisibilityChecks(); // Key listeners only inactive if related component is paused.
+    this.recenterContext = { action: 'recenter' };
     this.SplashScreen = scene.querySelector('#SplashScreen');
     this.GameBoard = scene.querySelector('#GameBoard');
     this.Jukebox = scene.querySelector('[jukebox]');
@@ -42,26 +35,33 @@ aframe.registerComponent('gamestate', {
   },
 
   update(oldData) {
-    if (oldData.state !== this.data.state && initialised) {
+    if (oldData.state !== this.data.state && this.initialised) {
       // Wait for play to start before emitting game state changes
       // Should only be ignoring 'Loading' anyway
-      this.states.chain(this.data.state);
+      this.compStates.chain(this.data.state);
     }
-    if (!this.compStates && !(this.compStates = this.el.getAttribute('states')))
+    if (!this.compStates && !this.el.getAttribute('states'))
       this.el.setAttribute('states', { list: this.data.states, event: 'gamestatechanged' });
     this.compStates = this.el.components.states;
   },
 
   startupComplete: bindEvent(function () {
-    initialised = true;
+    this.initialised = true;
     for (var el of this.GameBoard.children)
       if (el.id) el.pause(); // Pause all the gameboard children that are named.
     this.GameBoard.pause();
     this.SplashScreen.pause();
     this.PauseGame.pause();
     this.Player.pause();
-    this.states = this.el.sceneEl.components.states;
-    this.states.chain(this.data.state);
+    this.compStates.chain(this.data.state);
+  }),
+
+  // Recenter state is a simple flip/flop to pause the element in focus.
+  startrecenter: bindEvent({ target: '#scene' }, function () {
+    this.compStates.call('Recenter', this.recenterContext);
+  }),
+  endrecenter: bindEvent({ target: '#scene' }, function () {
+    this.compStates.return(_, _, this.recenterContext);
   }),
 
   gamestatechanged: bindEvent(function (evt) {
@@ -72,6 +72,7 @@ aframe.registerComponent('gamestate', {
   }),
 
   enterLoading() {
+    this.Jukebox.setAttribute('jukebox', 'state', 'pause');
     startElement(this.SplashScreen); startElement(this.Player);
     this.compHeadless.startRaycaster('.cursor-splash');
   },
@@ -159,20 +160,15 @@ aframe.registerComponent('gamestate', {
     return true;
   },
 
-  addscore: bindEvent(function (evt) {
-    const amount = evt.detail * multiplier;
-    score += amount;
-    this.scoreText.setAttribute('text__score', {
-      value: score,
-    });
-  }),
+  score: 0,
+  highScore: 0,
+  multiplier: 1,
 
-  isAdvancedControls() {
-    return this.data.controls === 'Advanced';
-  },
-  isBasicControls() {
-    return this.data.controls === 'Basic';
-  },
+  addscore: bindEvent(function (evt) {
+    const amount = evt.detail * this.multiplier;
+    this.score += amount;
+    // this.scoreText.setAttribute('text__score', { value: this.score });
+  }),
 
   setEnvironment: (() => {
     let currentEnvironment;
@@ -199,27 +195,13 @@ function stopElement(el) {
 }
 
 function recenterElement(gs, el) {
-  if (gs.recentering) el.pause();
+  if (gs.data.state === 'Recenter') el.pause();
   else el.play();
 }
 
+/*
+*  Ask Adam.
 window.newgame = () => {
-  document.querySelector('[game-state]').setAttribute('game-state', {
-    state: 'NewGame',
-  });
+  document.querySelector('[game-state]').setAttribute('game-state', { state: 'NewGame' });
 };
-
-export default {
-  get instance() {
-    return instance;
-  },
-  get score() {
-    return score;
-  },
-  get highScore() {
-    return highScore;
-  },
-  get multiplier() {
-    return multiplier;
-  },
-};
+*/
