@@ -28,6 +28,7 @@ aframe.registerComponent('gamestate', {
     this.Game = scene.querySelector('#Game');
     this.Env1 = scene.querySelector('#env-1');
     this.Player = scene.querySelector('#player');
+    this.Cursor = scene.querySelector('#cursor');
     this.el.sceneEl.systems.keyboard.addListeners(this);
     onLoadedDo(() => {
       this.compHeadless = scene.querySelector('[headless-controller]').components['headless-controller'];
@@ -47,8 +48,8 @@ aframe.registerComponent('gamestate', {
 
   startupComplete: bindEvent(function () {
     this.initialised = true;
-    for (var el of this.GameBoard.children)
-      if (el.id) el.pause(); // Pause all the gameboard children that are named.
+    //    for (var el of this.GameBoard.children)
+    //      if (el.id) el.pause(); // Pause all the gameboard children that are named.
     this.GameBoard.pause();
     this.SplashScreen.pause();
     this.PauseGame.pause();
@@ -107,7 +108,7 @@ aframe.registerComponent('gamestate', {
     this.Env1.object3D.visible = false;
     this.compHeadless.stopRaycaster();
   },
-  recenterNewgame() { recenterElement(this, this.Gameboard) },
+  recenterNewgame() { recenterElement(this, this.GameBoard) },
 
   enterPause() {
     startElement(this.PauseGame);
@@ -146,7 +147,7 @@ aframe.registerComponent('gamestate', {
     return true;
   },
   keydown_Cursor() {
-    this.el.sceneEl.querySelector('#cursor').components['headless-controller'].toggleCursor();
+    this.Cursor.components['headless-controller'].toggleCursor();
     return true;
   },
   keydown_VRToggle() {
