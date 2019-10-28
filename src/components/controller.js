@@ -3,9 +3,111 @@ import { bindEvent } from "aframe-event-decorators";
 import { requestObject, returnObject, removeIndex } from "@micosmo/core/object";
 import { onLoadedDo, afterLoadedDo } from "@micosmo/aframe/startup";
 import { startProcess } from "@micosmo/ticker/aframe-ticker";
+import { instantiateDatagroup } from '@micosmo/aframe/lib/utils';
 
 export const ControlMap = getControlMap();
 export const ControllerMap = getControllerMap();
+
+aframe.registerComponent("controller", {
+  schema: {
+    hand: { default: "left" },
+    touch: { default: '' } // Datagroup that describes how a controller can touch elements in the scene.
+  },
+  init() {
+    this.Recenter = this.el.sceneEl.querySelector('[recenter]');
+    this.listeners = new Map();
+    this.controllerListeners = Object.create(null);
+    this.controllerPresent = false;
+    this.ready = false;
+    if (this.Recenter) {
+      onLoadedDo(() => { this.compRecenter = this.Recenter.components.recenter });
+      this.system.tryAddListeners(this);
+    }
+    afterLoadedDo(() => {
+      this.ready = true;
+      if (this.controllerPresent)
+        addEventListeners(this);
+    });
+  },
+  update(oldData) {
+    if (this.ready)
+      throw new Error(`micosmo:component:controller:update: Updates are not supported`);
+    if (oldData.hand !== this.data.hand) {
+      const el = this.el;
+      // Get common configuration to abstract different vendor controls.
+      const controlConfiguration = { hand: this.data.hand, model: true };
+      el.setAttribute("vive-controls", controlConfiguration);
+      el.setAttribute("oculus-touch-controls", controlConfiguration);
+      el.setAttribute("windows-motion-controls", controlConfiguration);
+      el.setAttribute('tracked-controls', 'autoHide', false);
+      this.system.addController(this);
+    }
+    if (oldData.touch !== this.data.touch) {
+      if (this.touch)
+        this.el.removeChild(this.touch);
+      if (this.data.touch !== '')
+        this.el.appendChild(this.touch = instantiateDatagroup(this.el.sceneEl.systems.dataset.getDatagroup(this.data.touch)));
+    }
+  },
+  remove() {
+    this.system.removeController(this);
+  },
+
+  controllerconnected: bindEvent(function (evt) {
+    console.info(`micosmo:component:controller: ${this.data.hand} controller connected`);
+    if (this.el.sceneEl.is('vr-mode'))
+      this.el.object3D.visible = true;
+    this.controllerPresent = true;
+    this.system.addAttachedController(this);
+    if (this.ready)
+      addEventListeners(this);
+  }),
+  controllerdisconnected: bindEvent(function (evt) {
+    console.info(`micosmo:component:controller: ${this.data.hand} controller disconnected`);
+    this.el.object3D.visible = false;
+    this.controllerPresent = false;
+    if (this.ready)
+      removeEventListeners(this);
+    this.system.removeAttachedController(this);
+  }),
+  'enter-vr': bindEvent({ target: 'a-scene' }, function (evt) {
+    if (!this.controllerPresent)
+      return;
+    if (!this.el.object3D.visible)
+      this.el.object3D.visible = true;
+  }),
+  'exit-vr': bindEvent({ target: 'a-scene' }, function (evt) {
+    if (!this.controllerPresent)
+      return;
+    if (this.el.object3D.visible)
+      this.el.object3D.visible = false;
+  }),
+
+  recenter_down() {
+    this.compRecenter.start('controller');
+    this.el.sceneEl.emit('startrecenter', undefined, false);
+    this.recenterProcess = startProcess(() => { this.compRecenter.around(this.el); return 'more' })
+    return true;
+  },
+  recenter_up() {
+    this.recenterProcess.stop();
+    this.el.sceneEl.emit('endrecenter', undefined, false);
+    this.compRecenter.stop();
+    return true;
+  },
+});
+
+function addEventListeners(ctlr) {
+  const el = ctlr.el;
+  for (var event in ctlr.controllerListeners)
+    el.addEventListener(event, ctlr.controllerListeners[event]);
+}
+
+function removeEventListeners(ctlr) {
+  const el = ctlr.el;
+  for (var event in ctlr.controllerListeners)
+    el.removeEventListener(event, ctlr.controllerListeners[event]);
+}
 
 aframe.registerSystem("controller", {
   init() {
@@ -70,12 +172,10 @@ function mapToControllers(sysCtlr, cm, comp, spec, ctrl) {
       // { ctlr, cm, comp, id: spec.id, event, actEvent, listener };
       const lr = requestObject();
       lr.ctlr = ctlr; lr.cm = cm; lr.comp = comp; lr.id = spec.id; lr.event = event; lr.actEvent = actEvent; lr.listener = listener;
-      console.log('mapToController', ctlr.data.hand, lr);
       addListenerRecord(ctlr, lr);
       // Make sure our controller can handle this event
       if (ctlr.controllerListeners[actEvent]) continue;
       ctlr.controllerListeners[actEvent] = evt => dispatchEvent(ctlr, evt, actEvent);
-      console.log('mapToController:ControllerListener', ctlr.data.hand, actEvent);
       if (ctlr.controllerPresent)
         ctlr.el.addEventListener(actEvent, ctlr.controllerListeners[actEvent]);
     }
@@ -143,87 +243,12 @@ function dispatchEvent(ctlr, evt, actEvent) {
   return false;
 }
 
-aframe.registerComponent("controller", {
-  schema: {
-    hand: { default: "left" }
-  },
-  init() {
-    this.Recenter = this.el.sceneEl.querySelector('[recenter]');
-    this.listeners = new Map();
-    this.controllerListeners = Object.create(null);
-    this.controllerPresent = false;
-    this.ready = false;
-    if (this.Recenter)
-      this.system.tryAddListeners(this);
-    afterLoadedDo(() => {
-      this.ready = true;
-      if (this.controllerPresent)
-        addEventListeners(this);
-    });
-  },
-  update(oldData) {
-    if (this.ready)
-      throw new Error(`micosmo:component:controller:update: Updates are not supported`);
-    if (oldData.hand !== this.data.hand) {
-      const el = this.el;
-      // Get common configuration to abstract different vendor controls.
-      const controlConfiguration = { hand: this.data.hand, model: true };
-      el.setAttribute("vive-controls", controlConfiguration);
-      el.setAttribute("oculus-touch-controls", controlConfiguration);
-      el.setAttribute("windows-motion-controls", controlConfiguration);
-      this.system.addController(this);
-    }
-  },
-  remove() {
-    this.system.removeController(this);
-  },
-  controllerconnected: bindEvent(function (evt) {
-    console.info(`micosmo:component:controller: ${this.data.hand} controller connected`);
-    this.el.object3D.visible = true;
-    this.controllerPresent = true;
-    this.system.addAttachedController(this);
-    if (this.ready)
-      addEventListeners(this);
-  }),
-  controllerdisconnected: bindEvent(function (evt) {
-    console.info(`micosmo:component:controller: ${this.data.hand} controller disconnected`);
-    this.el.object3D.visible = false;
-    this.controllerPresent = false;
-    if (this.ready)
-      removeEventListeners(this);
-    this.system.removeAttachedController(this);
-  }),
-
-  recenter_down() {
-    this.el.sceneEl.emit('startrecenter', undefined, false);
-    this.recenterProcess = startProcess(() => { this.Recenter.components.recenter.around(this.el); return 'more' })
-    return true;
-  },
-  recenter_up() {
-    this.recenterProcess.stop();
-    this.el.sceneEl.emit('endrecenter', undefined, false);
-    return true;
-  },
-});
-
-function addEventListeners(ctlr) {
-  const el = ctlr.el;
-  for (var event in ctlr.controllerListeners)
-    el.addEventListener(event, ctlr.controllerListeners[event]);
-}
-
-function removeEventListeners(ctlr) {
-  const el = ctlr.el;
-  for (var event in ctlr.controllerListeners)
-    el.removeEventListener(event, ctlr.controllerListeners[event]);
-}
-
 function getControlMap() {
   return Object.freeze({
     grip: { actual: 'grip', events: ['up', 'down', 'touchstart', 'touchend', 'changed'] },
-    pad: { actual: 'trackpad', events: ['up', 'down', 'changed'] },
+    pad: { actual: 'trackpad', events: ['up', 'down', 'changed', 'moved'] },
     trig: { actual: 'trigger', events: ['up', 'down', 'touchstart', 'touchend', 'changed'] },
-    stick: { actual: 'thumbstick', events: ['up', 'down', 'touchstart', 'touchend', 'changed'] },
+    stick: { actual: 'thumbstick', events: ['up', 'down', 'touchstart', 'touchend', 'changed', 'moved'] },
     menu: { actual: 'menu', events: ['up', 'down', 'changed'] },
     surf: { actual: 'surface', events: ['up', 'down', 'touchstart', 'touchend', 'changed'] },
     sys: { actual: 'system', events: ['up', 'down', 'changed'] },

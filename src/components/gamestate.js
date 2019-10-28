@@ -1,4 +1,4 @@
-// /* global THREE */
+/* global THREE */
 import aframe from 'aframe';
 import { bindEvent } from 'aframe-event-decorators';
 // import { startProcess, msWaiter } from '@micosmo/ticker/aframe-ticker';
@@ -6,6 +6,7 @@ import { onLoadedDo } from '@micosmo/aframe/startup';
 import { noVisibilityChecks as noKeyboardVisibilityChecks } from '@micosmo/aframe/keyboard';
 
 const _ = undefined;
+const PositionStates = ['Loading', 'MainMenu', 'Newgame', 'Nextlevel', 'Playing', 'Endlevel', 'Endgame', 'Pause'];
 
 aframe.registerComponent('gamestate', {
   schema: {
@@ -48,6 +49,18 @@ aframe.registerComponent('gamestate', {
 
   startupComplete: bindEvent(function () {
     this.initialised = true;
+    this.initPlayerPosition = this.Player.object3D.position.clone();
+    this.compRecenter = this.Player.components.recenter;
+    this.statePositions = Object.create(null);
+    PositionStates.forEach(state => {
+      const o = Object.create(null);
+      o.playerPosition = this.initPlayerPosition.clone();
+      o.playerOffset = new THREE.Vector3().copy(this.compRecenter.currentOffset);
+      if (Array.isArray(state))
+        state.forEach(s => { this.statePositions[s] = o }); // Multiple states to the one save point
+      else
+        this.statePositions[state] = o; // Individual state save point.
+    })
     //    for (var el of this.GameBoard.children)
     //      if (el.id) el.pause(); // Pause all the gameboard children that are named.
     this.GameBoard.pause();
@@ -69,6 +82,16 @@ aframe.registerComponent('gamestate', {
     const detail = evt.detail;
     this.oldData.state = this.data.state = detail.to.state; // Keep gamestate data up to date.
     console.info(`micosmo:component:gamestate:gamestatechanged: '${detail.from.state}' to '${detail.to.state}' by '${detail.op}'`);
+    var statePosition = this.statePositions[detail.from.state];
+    if (statePosition && detail.from.action === 'exit') {
+      statePosition.playerPosition.copy(this.Player.object3D.position);
+      statePosition.playerOffset.copy(this.compRecenter.playerOffset);
+    }
+    statePosition = this.statePositions[detail.to.state];
+    if (statePosition && detail.to.action === 'enter') {
+      this.Player.object3D.position.copy(statePosition.playerPosition);
+      this.compRecenter.playerOffset.copy(statePosition.playerOffset);
+    }
     evt.detail.disperseEvent(evt, this); // Disperse event back to me
   }),
 
@@ -108,7 +131,7 @@ aframe.registerComponent('gamestate', {
     this.Env1.object3D.visible = false;
     this.compHeadless.stopRaycaster();
   },
-  recenterNewgame() { recenterElement(this, this.GameBoard) },
+  recenterNewgame() { recenterElement(this, this.Game) },
 
   enterPause() {
     startElement(this.PauseGame);

@@ -14,3 +14,5 @@ import "./recenter";
 import "./flip-normals";
 import "./ctrlmap";
 import "./paused";
+import "./playspace";
+import "./spaceship";

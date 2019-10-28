@@ -16,10 +16,9 @@ aframe.registerComponent("headless-controller", {
     rayClass: { type: 'string', default: '.cursor-none' },
     rayInterval: { type: 'int', default: 0 },
     triggerCacheTimeout: { type: 'number', default: 0.0 },
-    cameraAdjust: { type: 'vec3' },
     triggers: { type: 'array', default: [] },
-    recenterMove: { type: 'vec3', default: { x: 0.010, y: 0.010, z: 0.010 } },
-    recenterRotate: { default: 10 } // In degrees
+    recenterMove: { type: 'vec3', default: { x: 0.020, y: 0.020, z: 0.020 } },
+    recenterRotate: { default: 5 } // In degrees
   },
   dependencies: ['cursor', 'raycaster', 'geometry', 'material'],
   init() {
@@ -32,7 +31,8 @@ aframe.registerComponent("headless-controller", {
     this.Recenter = this.el.sceneEl.querySelector('[recenter]');
     if (this.Recenter) {
       this.el.sceneEl.systems.keyboard.addListeners(this, 'Recenter');
-      this.recenterProcess = ticker.createProcess(() => { this.Recenter.components.recenter.around(this.VC); return 'more' })
+      onLoadedDo(() => { this.compRecenter = this.Recenter.components.recenter });
+      this.recenterProcess = ticker.createProcess(() => { this.compRecenter.around(this.VC); return 'more' })
       // Create a Virtual Controller element at the same level as the camera and at the same position.
       this.VC = document.createElement('a-entity');
       this.VC.setAttribute('id', 'VirtualController');
@@ -46,24 +46,31 @@ aframe.registerComponent("headless-controller", {
 
     this.flHMDDetected = undefined; // Require 3 checkable states.
     this.targetEl = this.triggerEl = this.triggerCache = undefined;
-    this.cursorCameraPosition = new THREE.Vector3();
-    this.saveCameraPosition = new THREE.Vector3();
-    this.cameraAdjustment = new THREE.Vector3(0, 0, 0);
+    this.saveRecenterPosition = new THREE.Vector3();
     this.vRecenter = new THREE.Vector3();
     this.v1 = new THREE.Vector3();
     this.v2 = new THREE.Vector3();
 
     this.triggers = ['Trigger'];
     this.el.sceneEl.systems.keyboard.addListeners(this, this.triggers);
-    onLoadedDo(() => {
-      headlessReady(this);
-      this.cursorCameraPosition.copy(this.Camera.object3D.position);
-      this.saveCameraPosition.copy(this.cursorCameraPosition);
-    });
+    onLoadedDo(() => { headlessReady(this) });
     this.triggerTimer = ticker.createProcess(ticker.msWaiter(100, method(triggerUp).bind(this)));
     this.triggerCacheTimeout = ticker.createProcess(method(fTriggerCacheTimeout).bind(this));
 
     console.log(this.el);
+    var object3D = this.Recenter.object3D;
+    console.log('Recenter', object3D.getWorldPosition(this.v1), object3D.getWorldDirection(this.v2));
+    object3D = new THREE.Object3D();
+    console.log('new object', object3D.getWorldPosition(this.v1), object3D.getWorldDirection(this.v2));
+    object3D = this.VC.object3D;
+    console.log('VC', object3D.getWorldPosition(this.v1), object3D.getWorldDirection(this.v2).multiplyScalar(3));
+    this.v1.sub(this.v2); console.log('VC sub Origin', this.v1);
+    this.v1.applyQuaternion(this.qRecPosRotation); console.log('VC Rotate', this.v1);
+    this.v1.add(this.v2); console.log('VC add Origin', this.v1);
+    this.v1.sub(this.v2); console.log('VC sub Origin', this.v1);
+    this.v1.applyQuaternion(this.qRecPosRotation); console.log('VC Rotate', this.v1);
+    this.v1.add(this.v2); console.log('VC add Origin', this.v1);
+
     const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.Math.degToRad(5));
     const q1 = q.clone().inverse();
     const v = new THREE.Vector3(1, 1, 1); const v1 = (new THREE.Vector3()).copy(v);
@@ -82,10 +89,6 @@ aframe.registerComponent("headless-controller", {
     if (oldData.rayClass !== this.data.rayClass) {
       this.Cursor.setAttribute('raycaster', { objects: this.data.rayClass, interval: this.data.rayInterval });
     }
-    if (oldData.cameraAdjust !== this.data.cameraAdjust) {
-      const v = this.data.cameraAdjust;
-      this.cameraAdjustment.set(v.x, v.y, v.z);
-    }
     if (oldData.triggers !== this.data.triggers) {
       this.el.sceneEl.systems.keyboard.removeListeners(this, this.triggers);
       applyOtherTriggers(this, oldData.triggers, this.data.triggers);
@@ -98,13 +101,13 @@ aframe.registerComponent("headless-controller", {
   toggleCursor() {
     if (this.Cursor.components.raycaster.data.enabled) {
       this.Cursor.object3D.visible = false;
-      this.Camera.object3D.position.copy(this.saveCameraPosition);
+      this.Recenter.object3D.position.copy(this.saveRecenterPosition);
       this.Cursor.setAttribute('raycaster', 'enabled', 'false');
       this.Cursor.setAttribute('paused', 'true');
     } else {
       this.Cursor.object3D.visible = true;
-      this.saveCameraPosition.copy(this.Camera.object3D.position);
-      this.Camera.object3D.position.add(this.cameraAdjustment);
+      this.saveRecenterPosition.copy(this.Recenter.object3D.position);
+      this.Recenter.components.recenter.around(this.VC);
       this.Cursor.setAttribute('raycaster', 'enabled', 'true');
       this.Cursor.setAttribute('paused', 'false');
     }
@@ -128,6 +131,7 @@ aframe.registerComponent("headless-controller", {
 
   keydown_Recenter() {
     if (!this.recentering) {
+      this.compRecenter.start('keyboard');
       this.sysKB.addListeners(this, RecenterKeys);
       this.el.sceneEl.emit('startrecenter', undefined, false);
       this.recenterProcess.start();
@@ -140,6 +144,7 @@ aframe.registerComponent("headless-controller", {
       this.recenterProcess.stop();
       this.el.sceneEl.emit('endrecenter', undefined, false);
       this.sysKB.removeListeners(this, RecenterKeys);
+      this.compRecenter.stop();
     }
     this.recentering = false;
     return true;

@@ -1,21 +1,28 @@
-<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,Test:-any-" inspector-events
+<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,Test:-any" inspector-events
   fog="type:exponential; color:#040f19; density:0.17" gamma="true"
   gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Recenter">
 
   <a-entity id="DataGroups">
     <a-datagroup id="defaults" dataset__font="font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;"
-      dataset__text="|font|align:center;color:#ffffff;negate:false;side:double;">
+      dataset__text="|font|align:center;color:#ffffff;negate:false;side:double;"></a-datagroup>
+
+    <a-datagroup id="pointer" dataset__attributes="class:cursor; position:0 0 -0.1"
+      dataset__geometry="primitive:sphere; radius:0.006"
+      dataset__material="shader:flat;color:blue;transparent:true;opacity:0.75"
+      dataset__line="start: 0 -0.010 0.090; end: 0 0 0.006; color:blue"
+      dataset__collider="collidesWith: ui;layer:cursor; radius: 0.006">
     </a-datagroup>
+
     <a-datagroup id="DefaultButton" dataset__geometry="primitive:box;depth:0.012;height:0.030;width:0.085"
       dataset__text="|defaults:|color:#000000;wrapCount:10;width:0.070;zOffset:0.007"
       dataset__material="color:#ffffff;emissive:#ffffff;emissiveIntensity:1"
       dataset__collider="layer:ui;collidesWith:cursor;shape:box">
     </a-datagroup>
-    <!--      dataset__move="([s])yup:w,ArrowUp; ([s])ydown:s,ArrowDown; ([s])xleft:a,ArrowLeft; ([s])xright:d,ArrowRight; ([s])zin:q,ShiftRight; ([s])zout:e,ControlRight"
-      dataset__rotate="([s])ylyaw:a,ArrowLeft; ([s])yryaw:d,ArrowRight; ([s])xupch:w,ArrowUp; ([s])xdpch:s,ArrowDown; ([s])zlroll:q,ShiftRight; ([s])zrroll:e,ControlRight">
--->
+
     <a-datagroup id="MotionKeys"
-      dataset__recenter="rup:ArrowUp; rdown:ArrowDown; rleft:ArrowLeft; rright:ArrowRight; rin:Home; rout:PageUp; rrotleft:End; rrotright:PageDown">
+      dataset__recenter="rup:ArrowUp; rdown:ArrowDown; rleft:ArrowLeft; rright:ArrowRight; rin:Home; rout:PageUp; rrotleft:End; rrotright:PageDown"
+      dataset__rotate="rotup:w; rotdown:s; rotleft:a; rotright:d"
+      dataset__shiprotate="pitchup:ArrowUp; pitchdown:ArrowDown; yawleft:ArrowLeft; yawright:ArrowRight">
     </a-datagroup>
   </a-entity>
 
@@ -118,25 +125,34 @@
     </a-entity>
 
     <a-entity id="Game" position="0.026 0.26 0" visible="false">
-      <a-sphere radius=".5" shader="standard" flip-normals color="green" wireframe="false" wireframe-linewidth="1"
-        position="0 0.188 -0.166"></a-sphere>
+      <a-entity id="PlaySpace" geometry="primitive:sphere; radius:2"
+        material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.5" playspace
+        ctrlmap="rotate:leftstick" keyMap="|MotionKeys:rotate|" position="0 1.75 -2.00">
+        <a-entity position="0 0 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
+          material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002" spaceship
+          ctrlmap="pitchyaw:rightstick, thrust:a, thrust:x, trigger:trig"
+          keymap="|MotionKeys:shiprotate| thrust:+, trigger:Space, trigger:Enter "></a-entity>
+      </a-entity>
     </a-entity>
 
   </a-entity>
 
   <!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->
-  <!-- wasd-controls="adAxis:z;wsAxis:y" have taken this out as now support keyboard recentering -->
-  <a-entity id="player" recenter="offset: 0, 1.1, -0.2" visible="false">
+  <!-- wasd-controls="adAxis:z;wsAxis:y" have taken this out as now support keyboard recentering 
+  recenter="offset: 0, 1.1, -0.2" -->
+  <a-entity id="player" recenter="offset: 0 1.2 -0.5" visible="false">
     <a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" look-controls>
       <a-entity id="cursor" cursor="fuseTimeout: 500; rayOrigin: mouse" position="0 0 -0.1"
         raycaster="objects: .cursor-none; interval: 0; enabled: false"
         geometry="primitive: ring; radiusInner: 0.001; radiusOuter: 0.002" material="color: red; shader: flat"
-        headless-controller="cameraAdjust:0 0.0 -0.3" paused="true"
-        keymap="|MotionKeys:recenter| Recenter:r, Trigger:Space, Trigger:Enter" visible="false">
+        headless-controller paused="true" keymap="|MotionKeys:recenter| Recenter:r, Trigger:Space, Trigger:Enter"
+        visible="false">
       </a-entity>
     </a-entity>
-    <a-entity id="leftHand" controller="hand:left" ctrlmap="recenter:leftgrip" visible="false"></a-entity>
-    <a-entity id="rightHand" controller="hand:right" ctrlmap="recenter:rightgrip" visible="false"></a-entity>
+    <a-entity id="leftHand" controller="hand:left;touch:pointer" ctrlmap="recenter:leftgrip" visible="false">
+    </a-entity>
+    <a-entity id="rightHand" controller="hand:right;touch:pointer" ctrlmap="recenter:rightgrip" visible="false">
+    </a-entity>
   </a-entity>
 
   <a-sky color="black"></a-sky>
