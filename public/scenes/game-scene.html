@@ -1,5 +1,5 @@
-<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,Test:-any" inspector-events
-  fog="type:exponential; color:#040f19; density:0.17" gamma="true"
+<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,Test:-any" ctrlmap="Pause:stick, Pause:menu"
+  inspector-events fog="type:exponential; color:#040f19; density:0.17" gamma="true"
   gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Recenter">
 
   <a-entity id="DataGroups">
@@ -100,7 +100,7 @@
     </a-entity>
   </a-entity>
 
-  <a-entity id="GameBoard" position="0 1.2 -0.5" ticker visible="false">
+  <a-entity id="GameBoard" position="0 1.2 -0.5" visible="false">
     <!--<a-sphere position="-0.2 0 0.2" scale="0.05 0.05 0.05" material="shader:standard;sphericalEnvMap:#sky"></a-sphere>
     
     -->
@@ -124,13 +124,13 @@
       </a-entity>
     </a-entity>
 
-    <a-entity id="Game" position="0.026 0.26 0" visible="false">
+    <a-entity id="Game" position="0.026 0.26 0" ticker visible="false">
       <a-entity id="PlaySpace" geometry="primitive:sphere; radius:2"
         material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.5" playspace
-        ctrlmap="rotate:leftstick" keyMap="|MotionKeys:rotate|" position="0 1.75 -2.00">
+        ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.75 -2.00">
         <a-entity position="0 0 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
           material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002" spaceship
-          ctrlmap="pitchyaw:rightstick, thrust:a, thrust:x, trigger:trig"
+          ctrlmap="pitchyaw:rightstick, pitchyaw:rightpad, thrust:a, thrust:x, thrust:pad, trigger:trig"
           keymap="|MotionKeys:shiprotate| thrust:+, trigger:Space, trigger:Enter "></a-entity>
       </a-entity>
     </a-entity>

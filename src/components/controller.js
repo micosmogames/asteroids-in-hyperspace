@@ -195,9 +195,9 @@ function getListener(comp, spec, sEvt) {
   const sIdEvt = `${spec.id}_${sEvt}`; const sIdEvt1 = `${spec.id}${sEvt}`;
   var fEvt = spec[sEvt];
   if (fEvt) return fEvt;
-  if ((fEvt = comp[sIdEvt] && comp[sIdEvt].bind(comp))) return fEvt; // Ex. grip_up
-  if ((fEvt = comp[sIdEvt1] && comp[sIdEvt1].bind(comp))) return fEvt; // Ex. gripup
-  return comp[spec.id] && comp[spec.id].bind(comp); // Ex. grip
+  if (typeof comp[sIdEvt] === 'function' && (fEvt = comp[sIdEvt].bind(comp))) return fEvt; // Ex. grip_up
+  if (typeof comp[sIdEvt1] === 'function' && (fEvt = comp[sIdEvt1].bind(comp))) return fEvt; // Ex. gripup
+  return typeof comp[spec.id] === 'function' && comp[spec.id].bind(comp); // Ex. grip
 }
 
 export function removeListeners(cm, comp, ids) {

@@ -6,7 +6,7 @@ import { onLoadedDo } from '@micosmo/aframe/startup';
 import { noVisibilityChecks as noKeyboardVisibilityChecks } from '@micosmo/aframe/keyboard';
 
 const _ = undefined;
-const PositionStates = ['Loading', 'MainMenu', 'Newgame', 'Nextlevel', 'Playing', 'Endlevel', 'Endgame', 'Pause'];
+const PositionStates = [['Loading', 'Pause'], 'MainMenu', 'Newgame', 'Nextlevel', 'Playing', 'Endlevel', 'Endgame'];
 
 aframe.registerComponent('gamestate', {
   schema: {
@@ -31,6 +31,7 @@ aframe.registerComponent('gamestate', {
     this.Player = scene.querySelector('#player');
     this.Cursor = scene.querySelector('#cursor');
     this.el.sceneEl.systems.keyboard.addListeners(this);
+    this.el.sceneEl.systems.controller.addListeners(this);
     onLoadedDo(() => {
       this.compHeadless = scene.querySelector('[headless-controller]').components['headless-controller'];
     });
@@ -60,7 +61,7 @@ aframe.registerComponent('gamestate', {
         state.forEach(s => { this.statePositions[s] = o }); // Multiple states to the one save point
       else
         this.statePositions[state] = o; // Individual state save point.
-    })
+    });
     //    for (var el of this.GameBoard.children)
     //      if (el.id) el.pause(); // Pause all the gameboard children that are named.
     this.GameBoard.pause();
@@ -85,12 +86,12 @@ aframe.registerComponent('gamestate', {
     var statePosition = this.statePositions[detail.from.state];
     if (statePosition && detail.from.action === 'exit') {
       statePosition.playerPosition.copy(this.Player.object3D.position);
-      statePosition.playerOffset.copy(this.compRecenter.playerOffset);
+      statePosition.playerOffset.copy(this.compRecenter.currentOffset);
     }
     statePosition = this.statePositions[detail.to.state];
     if (statePosition && detail.to.action === 'enter') {
       this.Player.object3D.position.copy(statePosition.playerPosition);
-      this.compRecenter.playerOffset.copy(statePosition.playerOffset);
+      this.compRecenter.currentOffset.copy(statePosition.playerOffset);
     }
     evt.detail.disperseEvent(evt, this); // Disperse event back to me
   }),
@@ -164,6 +165,10 @@ aframe.registerComponent('gamestate', {
   keyup_Test(id, kc, evt) {
     console.log('TestKeys', id, kc, evt);
     return false;
+  },
+  Pause_down() { // Controller input
+    this.compStates.call('Pause');
+    return true;
   },
   keydown_Pause() {
     this.compStates.call('Pause');

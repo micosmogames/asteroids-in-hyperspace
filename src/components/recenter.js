@@ -15,7 +15,7 @@ aframe.registerComponent("recenter", {
     this.v3 = new THREE.Vector3();
     this.currentOffset = new THREE.Vector3();
     if (!this.el.getAttribute('ctrlmap'))
-      this.el.setAttribute('ctrlmap', 'xy:stick,zin:b,zin:y,zout:a,zout:x'); // Allow stick adjustments to the element being recentered
+      this.el.setAttribute('ctrlmap', 'xy:stick,xy:pad,zin:b,zin:y,zin:leftpad,zout:a,zout:x,zout:rightpad'); // Allow stick adjustments to the element being recentered
     const self = this;
     this.offsetProcess = ticker.createProcess(function * zTravel() {
       for (; ;) {
@@ -31,7 +31,8 @@ aframe.registerComponent("recenter", {
     this.sysController.removeListeners(this);
   },
   start(how) {
-    if (how === 'controller') this.sysController.addListeners(this);
+    if (how === 'controller')
+      this.sysController.addListeners(this);
   },
   stop() {
     this.sysController.removeListeners(this);

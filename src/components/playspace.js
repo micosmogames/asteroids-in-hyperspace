@@ -30,38 +30,20 @@ aframe.registerComponent("playspace", {
   rotate_moved(evt) {
     const { x, y } = evt.detail;
     const absX = Math.abs(x); const absY = Math.abs(y);
-    if (absX < 0.1 && absY < 0.1)
-      return;
-    if (absX >= 0.1) {
-      this.quat.setFromAxisAngle(this.yAxis, RotateMovement * absX);
-      if (x < 0) this.quat.conjugate();
-      this.el.object3D.applyQuaternion(this.quat);
-    }
-    if (absY >= 0.1) {
-      this.quat.setFromAxisAngle(this.xAxis, RotateMovement * absY);
-      if (y < 0) this.quat.conjugate();
-      this.el.object3D.applyQuaternion(this.quat);
-    }
+    if (absX < 0.1 && absY < 0.1) return;
+    if (absX >= 0.1) return rotate(this, this.yAxis, x < 0, absX);
+    if (absY >= 0.1) return rotate(this, this.xAxis, y < 0, absY);
     return true;
   },
-  keydown_rotup() {
-    this.quat.setFromAxisAngle(this.xAxis, RotateMovement);
-    this.el.object3D.applyQuaternion(this.quat);
-    return true;
-  },
-  keydown_rotdown() {
-    this.quat.setFromAxisAngle(this.xAxis, RotateMovement);
-    this.el.object3D.applyQuaternion(this.quat.conjugate());
-    return true;
-  },
-  keydown_rotleft() {
-    this.quat.setFromAxisAngle(this.yAxis, RotateMovement);
-    this.el.object3D.applyQuaternion(this.quat.conjugate());
-    return true;
-  },
-  keydown_rotright() {
-    this.quat.setFromAxisAngle(this.yAxis, RotateMovement);
-    this.el.object3D.applyQuaternion(this.quat);
-    return true;
-  }
+  keydown_rotup() { return rotate(this, this.xAxis, false) },
+  keydown_rotdown() { return rotate(this, this.xAxis, true) },
+  keydown_rotleft() { return rotate(this, this.yAxis, true) },
+  keydown_rotright() { return rotate(this, this.yAxis, false) },
 });
+
+function rotate(ps, axis, flNegate, factor = 1) {
+  ps.quat.setFromAxisAngle(axis, RotateMovement * factor);
+  if (flNegate) ps.quat.conjugate();
+  ps.el.object3D.applyQuaternion(ps.quat);
+  return true;
+}
