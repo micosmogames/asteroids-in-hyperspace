@@ -30,7 +30,6 @@ aframe.registerComponent("playspace", {
   rotate_moved(evt) {
     const { x, y } = evt.detail;
     const absX = Math.abs(x); const absY = Math.abs(y);
-    if (absX < 0.1 && absY < 0.1) return;
     if (absX >= 0.1) return rotate(this, this.yAxis, x < 0, absX);
     if (absY >= 0.1) return rotate(this, this.xAxis, y < 0, absY);
     return true;

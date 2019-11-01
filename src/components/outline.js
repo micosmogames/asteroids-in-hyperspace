@@ -2,6 +2,8 @@
 
 import aframe from "aframe";
 import { bindEvent } from "aframe-event-decorators";
+import { parseNameValues, stringifyNameValues } from '@micosmo/core/string';
+import { hasOwnProperty } from '@micosmo/core/object';
 
 const outlineVS = `
   uniform float thickness;
@@ -21,12 +23,20 @@ const outlineFS = `
   }
 `;
 
+const _ = undefined;
+const ParseOptions = { nameValueSeparator: '=', entrySeparator: ',' };
+
 aframe.registerComponent("outline", {
   schema: {
     thickness: { type: "number", default: 0.01 },
-    color: { type: "color", default: "white" }
+    color: { type: "color", default: "white" },
+    filter: {
+      default: Object.create(null),
+      parse(v) { return parseNameValues(v, _, ParseOptions) },
+      stringifyNameValues(v) { return stringifyNameValues(v, ParseOptions) }
+    }
   },
-  init: function() {
+  init: function () {
     this.color = new THREE.Color();
     this._updateUniforms();
     this.outlineMaterial = new THREE.ShaderMaterial({
@@ -39,15 +49,21 @@ aframe.registerComponent("outline", {
       this._applyShader();
     }
   },
-  update: function(oldData) {
+  update: function (oldData) {
     this._updateUniforms();
   },
-  object3dset: bindEvent(function(evt) {
-    if (evt.detail.type === "mesh") {
-      this._applyShader();
+  object3dset: bindEvent(function (evt) {
+    if (evt.detail.type !== "mesh")
+      return;
+    // Check that filters match properties in the event object
+    for (var prop in this.data.filter) {
+      console.log(prop, evt.detail.object[prop]);
+      if (!hasOwnProperty(evt.detail.object, prop) || evt.detail.object[prop] !== this.data.filter[prop])
+        return;
     }
+    this._applyShader();
   }),
-  _updateUniforms: function() {
+  _updateUniforms: function () {
     if (this._uniforms === undefined) {
       this._uniforms = {};
     }
@@ -55,9 +71,7 @@ aframe.registerComponent("outline", {
     this._uniforms.thickness = { value: this.data.thickness };
   },
   _applyShader() {
-    if (this._shaderApplied) {
-      return;
-    }
+    if (this._shaderApplied) return;
     this._shaderApplied = true;
     const mesh = this.el.getObject3D("mesh");
     this.clonedMesh = mesh.clone();

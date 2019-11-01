@@ -129,11 +129,15 @@
         material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.5" playspace
         ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.75 -2.00">
         <a-entity position="0 0 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
-          material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002" spaceship
+          material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship
           ctrlmap="pitchyaw:rightstick, pitchyaw:rightpad, thrust:a, thrust:x, thrust:pad, trigger:trig"
-          keymap="|MotionKeys:shiprotate| thrust:+, trigger:Space, trigger:Enter "></a-entity>
+          keymap="|MotionKeys:shiprotate| thrust:+, trigger:Space, trigger:Enter ">
+          <a-entity position="0 0 0" scale="2 2 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
+            material="shader:flat;color:black" outline="color:#81FFFC;thickness:-0.002"></a-entity>
+        </a-entity>
       </a-entity>
     </a-entity>
+  </a-entity>
 
   </a-entity>
 

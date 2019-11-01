@@ -45,7 +45,6 @@ aframe.registerComponent("spaceship", {
   pitchyaw_moved(evt) {
     const { x, y } = evt.detail;
     const absX = Math.abs(x); const absY = Math.abs(y);
-    if (absX < 0.1 && absY < 0.1) return true;
     if (absX >= 0.1) rotate(this, this.yAxis, x < 0, absX);
     if (absY >= 0.1) rotate(this, this.xAxis, y < 0, absY);
     return true;

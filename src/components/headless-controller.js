@@ -79,6 +79,12 @@ aframe.registerComponent("headless-controller", {
     v.applyQuaternion(q); v1.applyQuaternion(q1); console.log(v, v1);
     v.applyQuaternion(q); v1.applyQuaternion(q1); console.log(v, v1);
     v.applyQuaternion(q); v1.applyQuaternion(q1); console.log(v, v1);
+
+    this.v1.set(1, 1, 1); this.v2.set(10, 10, 10);
+    this.v1.add(this.v2); this.v2.copy(this.v1);
+    this.v1.normalize().multiplyScalar(5); this.v2.clampLength(0, 5);
+    console.log(this.v1, this.v2);
+
     //    const o = new THREE.Object3D();
     //    o.position.set(1, 1, 1);
     //    console.log(o.position, o.rotation, o.scale);
