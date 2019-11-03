@@ -16,3 +16,5 @@ import "./ctrlmap";
 import "./paused";
 import "./playspace";
 import "./spaceship";
+import "./asteroids";
+import "./ufos";

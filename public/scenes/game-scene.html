@@ -27,8 +27,18 @@
   </a-entity>
 
   <a-assets timeout="30000">
-    <a-mixin id="GattlerRound" scale=".75 .75 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
+    <a-mixin id="GattlerRound" scale="0.75 0.75 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
       material="shader:flat;color:white"></a-mixin>
+    <a-mixin id="LargeAsteroid" scale="2 2 2" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-mixin>
+    <a-mixin id="SmallAsteroid" scale="1 1 1" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-mixin>
+    <a-mixin id="TinyAsteroid" scale="0.50 0.50 0.50" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-mixin>
+    <a-mixin id="Ufo" scale="2 2 2" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-mixin>
+    <a-mixin id="SmallUfo" scale="0.75 0.75 0.75" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-mixin>
 
     <image id="sky" src="./assets/sky/env.png"></image>
     <image id="sky2" src="./assets/sky/env-bottomless.png"></image>
@@ -127,16 +137,20 @@
       </a-entity>
     </a-entity>
 
-    <a-entity id="Pools" mipool__gattler="mixin: GattlerRound; container: #Gattler; size: 5; maxSize: 20">
+    <a-entity id="Pools" mipool__gattler="mixin: GattlerRound; container: #Gattler; size: 10; maxSize: 20"
+      mipool__lasteroid="mixin: LargeAsteroid; container: #Asteroids; size: 5; maxSize: 20"
+      mipool__sasteroid="mixin: SmallAsteroid; container: #Asteroids; size: 10; maxSize: 30"
+      mipool__tasteroid="mixin: TinyAsteroid; container: #Asteroids; size: 15; maxSize: 50"
+      mipool__ufo="mixin: Ufo; container: #Ufos; size: 2" mipool__sufo="mixin: SmallUfo; container: #Ufos; size: 4">
     </a-entity>
 
-    <a-entity id="Game" position="0.026 0.26 0" ticker visible="false">
+    <a-entity id="Game" position="0.026 0.26 0" ticker scale="0.5 0.5 0.5" visible="false">
       <a-entity id="PlaySpace" geometry="primitive:sphere; radius:2"
         material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.5" playspace
         ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.75 -2.00">
         <a-entity id="SpaceShip" position="0 0 0" scale="2 2 2"
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
-          outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship
+          outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 5"
           ctrlmap="pitchyaw:rightstick, pitchyaw:rightpad, thrust:a, thrust:x, thrust:pad, trigger:trig"
           keymap="|MotionKeys:shiprotate| thrust:+, trigger:Space, trigger:Enter ">
           <a-entity id="Thruster" position="0.001 0 0" scale="1.5 1.5 1.5"
@@ -144,6 +158,8 @@
             outline="color:#81FFFC;thickness:-0.002" visible="false"></a-entity>
         </a-entity>
         <a-entity id="Gattler"></a-entity>
+        <a-entity id="Asteroids" asteroids></a-entity>
+        <a-entity id="Ufos" ufos></a-entity>
       </a-entity>
     </a-entity>
 

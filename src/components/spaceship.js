@@ -9,11 +9,16 @@ import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 const MaxPitchYaw = THREE.Math.degToRad(2); // In degrees
 const KeyPitchYawFactor = 6;
-const MaxSpeed = 3 / 4; // m/s
-const Thrust = MaxSpeed * 2 / 3; // m/s/s
+const MaxSpeed = 1; // m/s
+const Thrust = MaxSpeed * 2; // m/s/s
+const ReverseThrust = Thrust / 2; // m/s/s
+const ReverseThrustWait = 250;
+const GattlerRoundSpeed = MaxSpeed * 2;
 
 aframe.registerComponent("spaceship", {
-  schema: { default: '' },
+  schema: {
+    lives: { default: 3 }
+  },
   init() {
     this.sysController = this.el.sceneEl.systems.controller;
     this.sysKeyboard = this.el.sceneEl.systems.keyboard;
@@ -26,17 +31,13 @@ aframe.registerComponent("spaceship", {
 
     this.thrust = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
-    this.thrusterCounters = { visible: 0, invisible: 0 };
+    this.thrusterCounter = 0;
     this.gattlerRounds = [];
     this.gattlerRoundAdjustment = 0.035;
 
-    this.thrustProcess = ticker.createProcess({
-      name: 'Thruster',
-      onTick: this.thruster.bind(this),
-      locateTicker: this.el,
-      onEnd: () => { this.Thruster.object3D.visible = false; this.thrusterCounters.invisible = this.thrusterCounters.visible = 0 }
-    });
-    this.travelProcess = ticker.startProcess(this.traveller.bind(this), this.el);
+    this.thrustProcess = ticker.createProcess(this.thruster.bind(this), this.el);
+    this.reverseThrustProcess = ticker.createProcess(ticker.iterator(ticker.msWaiter(ReverseThrustWait), this.reverseThruster.bind(this)), this.el);
+    this.travelProcess = ticker.createProcess(this.traveller.bind(this), this.el);
     this.gattlerProcess = ticker.createProcess(this.gattler.bind(this), this.el);
     this.gattlerWaiter = ticker.msWaiter(1000 / 5); // ~ 5 gattler rounds a second
     this.gattlerRoundsProcess = ticker.createProcess(this.gattlerRoundsTraveller.bind(this), this.el);
@@ -59,29 +60,51 @@ aframe.registerComponent("spaceship", {
     this.sysController.removeListeners(this);
     this.sysKeyboard.removeListeners(this);
     this.travelProcess.stop();
+    this.gattlerRoundsProcess.stop();
   },
 
   'enter-vr': bindEvent({ target: 'a-scene' }, function () { this.sysKeyboard.removeListeners(this) }),
   'exit-vr': bindEvent({ target: 'a-scene' }, function () { this.sysKeyboard.addListeners(this) }),
 
-  thrust_down() { this.thrustProcess.start(); return true },
-  thrust_up() { this.thrustProcess.stop(); return true },
-  keydown_thrust() { if (!this.thrustProcess.isAttached()) this.thrustProcess.start(); return true },
-  keyup_thrust() { this.thrustProcess.stop(); return true },
+  thrust_down() { return this.keydown_thrust() },
+  thrust_up() { return this.keyup_thrust() },
+  keydown_thrust() {
+    if (!this.thrustProcess.isAttached()) {
+      this.reverseThrustProcess.stop();
+      this.thrustProcess.start()
+      if (!this.travelProcess.isAttached()) this.travelProcess.start();
+    }
+    return true
+  },
+  keyup_thrust() {
+    this.thrustProcess.stop();
+    this.reverseThrustRotation = this.el.object3D.quaternion;
+    this.reverseThrustProcess.start();
+    this.Thruster.object3D.visible = false;
+    this.thrusterCounter = 0;
+    return true
+  },
   thruster(tm, dt) {
-    if (this.Thruster.object3D.visible) {
-      if ((this.thrusterCounters.visible -= dt) <= 0) {
-        this.Thruster.object3D.visible = false;
-        this.thrusterCounters.invisible = randomInt(50, 100);
-      }
-    } else if ((this.thrusterCounters.invisible -= dt) <= 0) {
-      this.Thruster.object3D.visible = true;
-      this.thrusterCounters.visible = randomInt(50, 100);
+    if ((this.thrusterCounter -= dt) <= 0) {
+      this.thrusterCounter = randomInt(50, 100);
+      this.Thruster.object3D.visible = !this.Thruster.object3D.visible;
     }
     this.thrust.copy(this.zAxis).applyQuaternion(this.el.object3D.quaternion).multiplyScalar(Thrust * dt / 1000);
     this.velocity.add(this.thrust);
     if (this.velocity.length() > MaxSpeed)
       this.velocity.normalize().multiplyScalar(MaxSpeed);
+    return 'more';
+  },
+  reverseThruster(tm, dt) {
+    const speed = this.velocity.length();
+    if (speed < 0.001) {
+      this.velocity.setLength(0);
+      this.travelProcess.stop();
+      return; // Stop the reverse thruster
+    }
+    const accel = ReverseThrust * dt / 1000;
+    // Slowly degrade our speed if acceleration exceeds the speed.
+    this.velocity.setLength(accel > speed ? speed / 2 : speed - accel);
     return 'more';
   },
 
@@ -99,8 +122,8 @@ aframe.registerComponent("spaceship", {
     return 'more';
   },
 
-  trigger_down() { this.gattlerProcess.start(); return true },
-  trigger_up() { this.gattlerProcess.stop(); return true },
+  trigger_down() { return this.keydown_trigger() },
+  trigger_up() { return this.keyup_trigger() },
   keydown_trigger() { if (!this.gattlerProcess.isAttached()) this.gattlerProcess.start(); return true },
   keyup_trigger() { this.gattlerProcess.stop(); return true },
   * gattler() {
@@ -134,9 +157,11 @@ aframe.registerComponent("spaceship", {
 });
 
 function moveGattlerRound(ss, el, dt) {
-  ss.v1.copy(ss.zAxis).applyQuaternion(el.object3D.quaternion).setLength(MaxSpeed * 1.25);
+  ss.v1.copy(ss.zAxis).applyQuaternion(el.object3D.quaternion).setLength(GattlerRoundSpeed);
   const vPos = el.object3D.position;
   vPos.addScaledVector(ss.v1.negate(), dt / 1000);
+  if (el.__ssVelocity.length() > 0)
+    vPos.addScaledVector(el.__ssVelocity, dt / 1000);
   return vPos.length() < ss.playspaceRadius;
 }
 
@@ -158,6 +183,8 @@ function fireGattlerRound(ss) {
   ss.v1.copy(ss.zAxis).applyQuaternion(ss.el.object3D.quaternion).setLength(ss.gattlerRoundAdjustment);
   el.object3D.position.copy(ss.el.object3D.position).add(ss.v1);
   el.object3D.quaternion.copy(ss.el.object3D.quaternion); el.object3D.applyQuaternion(ss.quat);
+  if (!el.__ssVelocity) el.__ssVelocity = new THREE.Vector3();
+  el.__ssVelocity.copy(ss.velocity);
   el.object3D.visible = true;
   el.play();
 }

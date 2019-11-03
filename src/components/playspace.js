@@ -3,7 +3,8 @@
 import aframe from 'aframe';
 import { bindEvent } from "aframe-event-decorators";
 
-const RotateMovement = THREE.Math.degToRad(0.25); // In degrees
+const RotateMovement = THREE.Math.degToRad(0.50); // In degrees
+
 aframe.registerComponent("playspace", {
   schema: { default: '' },
   init() {
