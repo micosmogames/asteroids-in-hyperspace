@@ -27,6 +27,9 @@
   </a-entity>
 
   <a-assets timeout="30000">
+    <a-mixin id="GattlerRound" scale=".75 .75 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:white"></a-mixin>
+
     <image id="sky" src="./assets/sky/env.png"></image>
     <image id="sky2" src="./assets/sky/env-bottomless.png"></image>
     <image id="micosmo" src="./assets/title/micosmo-icon.06e3433d.png"></image>
@@ -124,20 +127,25 @@
       </a-entity>
     </a-entity>
 
+    <a-entity id="Pools" mipool__gattler="mixin: GattlerRound; container: #Gattler; size: 5; maxSize: 20">
+    </a-entity>
+
     <a-entity id="Game" position="0.026 0.26 0" ticker visible="false">
       <a-entity id="PlaySpace" geometry="primitive:sphere; radius:2"
         material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.5" playspace
         ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.75 -2.00">
-        <a-entity position="0 0 0" scale="2 2 2" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
-          material="shader:flat;color:black" outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship
+        <a-entity id="SpaceShip" position="0 0 0" scale="2 2 2"
+          gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
+          outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship
           ctrlmap="pitchyaw:rightstick, pitchyaw:rightpad, thrust:a, thrust:x, thrust:pad, trigger:trig"
           keymap="|MotionKeys:shiprotate| thrust:+, trigger:Space, trigger:Enter ">
-          <a-entity position="0 0 0" scale="2 2 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
-            material="shader:flat;color:black" outline="color:#81FFFC;thickness:-0.002"></a-entity>
+          <a-entity id="Thruster" position="0.001 0 0" scale="1.5 1.5 1.5"
+            gltf-blender-part="part:flame;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
+            outline="color:#81FFFC;thickness:-0.002" visible="false"></a-entity>
         </a-entity>
+        <a-entity id="Gattler"></a-entity>
       </a-entity>
     </a-entity>
-  </a-entity>
 
   </a-entity>
 

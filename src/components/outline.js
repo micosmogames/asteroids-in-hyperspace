@@ -57,7 +57,6 @@ aframe.registerComponent("outline", {
       return;
     // Check that filters match properties in the event object
     for (var prop in this.data.filter) {
-      console.log(prop, evt.detail.object[prop]);
       if (!hasOwnProperty(evt.detail.object, prop) || evt.detail.object[prop] !== this.data.filter[prop])
         return;
     }
