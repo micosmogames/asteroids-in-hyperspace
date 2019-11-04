@@ -115,7 +115,7 @@ function destroyGattlerRound(ss, el, idx = ss.gattlerRounds.indexOf(el)) {
 }
 
 function fireGattlerRound(ss) {
-  if (!ss.gattlerRoundsProcess.isAttached()) ss.gattlerRoundsProcess.start();
+  ss.gattlerRoundsProcess.restart();
   const el = ss.gattlerRoundPool.requestEntity();
   ss.gattlerRounds.push(el);
   ss.axis.copy(ss.yAxis).applyQuaternion(ss.el.object3D.quaternion);

@@ -144,14 +144,14 @@
       mipool__ufo="mixin: Ufo; container: #Ufos; size: 2" mipool__sufo="mixin: SmallUfo; container: #Ufos; size: 4">
     </a-entity>
 
-    <a-entity id="Game" position="0.026 0.26 0" ticker scale="0.5 0.5 0.5" visible="false">
-      <a-entity id="PlaySpace" geometry="primitive:sphere; radius:2"
-        material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.5" playspace
+    <a-entity id="Game" position="0.026 0.26 0" ticker scale="0.15 0.15 0.15" visible="false">
+      <a-entity id="PlaySpace" geometry="primitive:sphere; radius:2;"
+        material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.25" playspace
         ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.75 -2.00">
         <a-entity id="SpaceShip" position="0 0 0" scale="2 2 2"
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
           outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 5"
-          ctrlmap="pitchyaw:rightstick, pitchyaw:rightpad, thrust:a, thrust:x, thrust:pad, trigger:trig"
+          ctrlmap="thrust:x, thrust:a, thrust:pad, leftTrigger:ltrig, rightTrigger:rtrig"
           keymap="|MotionKeys:shiprotate| thrust:+, trigger:Space, trigger:Enter ">
           <a-entity id="Thruster" position="0.001 0 0" scale="1.5 1.5 1.5"
             gltf-blender-part="part:flame;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
@@ -168,7 +168,8 @@
   <!--<a-entity position="-0.564 1.5 0.539" camera="spectator:true;active:false;fov:50" wasd-controls look-controls rotation="-7.334 -30.149 0"></a-entity>-->
   <!-- wasd-controls="adAxis:z;wsAxis:y" have taken this out as now support keyboard recentering 
   recenter="offset: 0, 1.1, -0.2" -->
-  <a-entity id="player" recenter="offset: 0 1.2 -0.5" visible="false">
+  <a-entity id="player" recenter="offset: 0 1.2 -0.5"
+    ctrlmap="xy:stick,xy:pad,zin:b,zin:y,zin:leftpad,zout:a,zout:x,zout:rightpad" visible="false">
     <a-entity id="player-camera" position="0 1.4 0.5" camera="active:true" look-controls>
       <a-entity id="cursor" cursor="fuseTimeout: 500; rayOrigin: mouse" position="0 0 -0.1"
         raycaster="objects: .cursor-none; interval: 0; enabled: false"

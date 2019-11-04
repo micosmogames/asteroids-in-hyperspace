@@ -43,10 +43,10 @@ aframe.registerComponent("controller", {
       this.system.addController(this);
     }
     if (oldData.touch !== this.data.touch) {
-      if (this.touch)
-        this.el.removeChild(this.touch);
+      if (this.Touch)
+        this.el.removeChild(this.Touch);
       if (this.data.touch !== '')
-        this.el.appendChild(this.touch = instantiateDatagroup(this.el.sceneEl.systems.dataset.getDatagroup(this.data.touch)));
+        this.el.appendChild(this.Touch = instantiateDatagroup(this.el.sceneEl.systems.dataset.getDatagroup(this.data.touch)));
     }
   },
   remove() {
@@ -279,6 +279,8 @@ function getControllerMap() {
     trig: { family: 'trig', left: true, right: true },
     ltrig: { family: 'trig', left: true },
     rtrig: { family: 'trig', right: true },
+    lefttrig: { family: 'trig', left: true },
+    righttrig: { family: 'trig', right: true },
     trigger: { family: 'trig', left: true, right: true },
     ltrigger: { family: 'trig', left: true },
     lefttrigger: { family: 'trig', left: true },

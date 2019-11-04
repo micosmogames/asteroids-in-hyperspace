@@ -11,9 +11,11 @@ const MaxPitchYaw = THREE.Math.degToRad(2); // In degrees
 const KeyPitchYawFactor = 6;
 const MaxSpeed = 1; // m/s
 const Thrust = MaxSpeed * 2; // m/s/s
-const ReverseThrust = Thrust / 2; // m/s/s
+const ReverseThrust = Thrust / 4; // m/s/s
 const ReverseThrustWait = 250;
 const GattlerRoundSpeed = MaxSpeed * 2;
+const GattlerRounds = 10;
+const TouchAngularRotation = THREE.Math.degToRad(270); // Degrees / s
 
 aframe.registerComponent("spaceship", {
   schema: {
@@ -35,19 +37,25 @@ aframe.registerComponent("spaceship", {
     this.gattlerRounds = [];
     this.gattlerRoundAdjustment = 0.035;
 
+    this.trackerProcess = ticker.startProcess(this.tracker.bind(this), this.el);
     this.thrustProcess = ticker.createProcess(this.thruster.bind(this), this.el);
     this.reverseThrustProcess = ticker.createProcess(ticker.iterator(ticker.msWaiter(ReverseThrustWait), this.reverseThruster.bind(this)), this.el);
     this.travelProcess = ticker.createProcess(this.traveller.bind(this), this.el);
     this.gattlerProcess = ticker.createProcess(this.gattler.bind(this), this.el);
-    this.gattlerWaiter = ticker.msWaiter(1000 / 5); // ~ 5 gattler rounds a second
+    this.gattlerWaiter = ticker.msWaiter(1000 / GattlerRounds);
     this.gattlerRoundsProcess = ticker.createProcess(this.gattlerRoundsTraveller.bind(this), this.el);
 
     onLoadedDo(() => {
       this.playspaceRadius = this.el.sceneEl.querySelector('#PlaySpace').components.geometry.data.radius;
       this.gattlerRoundPool = this.el.sceneEl.querySelector('#Pools').components.mipool__gattler;
+      this.LeftTouch = this.el.sceneEl.querySelector('#leftHand').components.controller.Touch;
+      this.RightTouch = this.el.sceneEl.querySelector('#rightHand').components.controller.Touch;
+      this.Touch = this.RightTouch;
     });
 
     this.quat = new THREE.Quaternion();
+    this.qTouch = new THREE.Quaternion();
+    this.vTouch = new THREE.Vector3();
     this.xAxis = new THREE.Vector3(1, 0, 0);
     this.yAxis = new THREE.Vector3(0, 1, 0);
     this.zAxis = new THREE.Vector3(0, 0, 1);
@@ -72,7 +80,7 @@ aframe.registerComponent("spaceship", {
     if (!this.thrustProcess.isAttached()) {
       this.reverseThrustProcess.stop();
       this.thrustProcess.start()
-      if (!this.travelProcess.isAttached()) this.travelProcess.start();
+      this.travelProcess.restart();
     }
     return true
   },
@@ -108,6 +116,18 @@ aframe.registerComponent("spaceship", {
     return 'more';
   },
 
+  tracker(tm, dt) {
+    this.quat.copy(this.el.object3D.quaternion);
+    this.Touch.object3D.getWorldPosition(this.vTouch);
+    this.el.object3D.lookAt(this.vTouch);
+    this.qTouch.copy(this.el.object3D.quaternion);
+    this.el.object3D.quaternion.copy(this.quat);
+    this.el.object3D.quaternion.rotateTowards(this.qTouch, TouchAngularRotation * dt / 1000);
+    const speed = this.velocity.length();
+    this.velocity.copy(this.zAxis).applyQuaternion(this.el.object3D.quaternion).setLength(speed);
+    return 'more';
+  },
+
   traveller(tm, dt) {
     const vPos = this.el.object3D.position;
     vPos.addScaledVector(this.velocity, dt / 1000);
@@ -122,9 +142,11 @@ aframe.registerComponent("spaceship", {
     return 'more';
   },
 
-  trigger_down() { return this.keydown_trigger() },
-  trigger_up() { return this.keyup_trigger() },
-  keydown_trigger() { if (!this.gattlerProcess.isAttached()) this.gattlerProcess.start(); return true },
+  leftTrigger_down() { this.Touch = this.LeftTouch; return this.keydown_trigger() },
+  leftTrigger_up() { return this.keyup_trigger() },
+  rightTrigger_down() { this.Touch = this.RightTouch; return this.keydown_trigger() },
+  rightTrigger_up() { return this.keyup_trigger() },
+  keydown_trigger() { this.gattlerProcess.restart(); return true },
   keyup_trigger() { this.gattlerProcess.stop(); return true },
   * gattler() {
     for (; ;) {
@@ -143,13 +165,6 @@ aframe.registerComponent("spaceship", {
     return 'more';
   },
 
-  pitchyaw_moved(evt) {
-    const { x, y } = evt.detail;
-    const absX = Math.abs(x); const absY = Math.abs(y);
-    if (absX >= 0.1) rotate(this, this.yAxis, x < 0, absX);
-    if (absY >= 0.1) rotate(this, this.xAxis, y < 0, absY);
-    return true;
-  },
   keydown_pitchup() { return rotate(this, this.xAxis, false, KeyPitchYawFactor) },
   keydown_pitchdown() { return rotate(this, this.xAxis, true, KeyPitchYawFactor) },
   keydown_yawleft() { return rotate(this, this.yAxis, true, KeyPitchYawFactor) },
@@ -175,7 +190,7 @@ function destroyGattlerRound(ss, el, idx = ss.gattlerRounds.indexOf(el)) {
 }
 
 function fireGattlerRound(ss) {
-  if (!ss.gattlerRoundsProcess.isAttached()) ss.gattlerRoundsProcess.start();
+  ss.gattlerRoundsProcess.restart();
   const el = ss.gattlerRoundPool.requestEntity();
   ss.gattlerRounds.push(el);
   ss.axis.copy(ss.yAxis).applyQuaternion(ss.el.object3D.quaternion);
@@ -190,7 +205,6 @@ function fireGattlerRound(ss) {
 }
 
 function rotate(ss, axis, flNegate, factor) {
-  //  ss.axis.copy(axis).applyQuaternion(ss.PlaySpace.object3D.quaternion);
   ss.axis.copy(axis).applyQuaternion(ss.el.object3D.quaternion);
   ss.quat.setFromAxisAngle(ss.axis, MaxPitchYaw * factor);
   if (flNegate) ss.quat.conjugate();
