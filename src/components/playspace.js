@@ -26,6 +26,15 @@ aframe.registerComponent("playspace", {
   remove() {
     this.sysController.removeListeners(this);
     this.sysKeyboard.removeListeners(this);
+    this.rotationProcess.stop();
+  },
+
+  newGame() {
+    this.rotationProcess.stop();
+    this.el.object3D.quaternion.set(0, 0, 0, 1); // Initial rotation
+  },
+  startLevel() {
+    this.rotationProcess.stop();
   },
 
   'enter-vr': bindEvent({ target: 'a-scene' }, function () { this.sysKeyboard.removeListeners(this) }),

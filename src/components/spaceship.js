@@ -9,12 +9,13 @@ import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 const MaxPitchYaw = THREE.Math.degToRad(2); // In degrees
 const KeyPitchYawFactor = 6;
-const MaxSpeed = 1; // m/s
+const MaxSpeed = 0.10; // m/s
 const Thrust = MaxSpeed * 2; // m/s/s
 const ReverseThrust = Thrust / 4; // m/s/s
 const ReverseThrustWait = 250;
-const GattlerRoundSpeed = MaxSpeed * 2;
-const GattlerRounds = 10;
+const GattlerRoundSpeed = MaxSpeed * 3;
+const GattlerRoundAdjustment = 0.00525;
+const GattlerRounds = 5;
 const TouchAngularRotation = THREE.Math.degToRad(270); // Degrees / s
 
 aframe.registerComponent("spaceship", {
@@ -35,9 +36,8 @@ aframe.registerComponent("spaceship", {
     this.velocity = new THREE.Vector3();
     this.thrusterCounter = 0;
     this.gattlerRounds = [];
-    this.gattlerRoundAdjustment = 0.035;
 
-    this.trackerProcess = ticker.startProcess(this.tracker.bind(this), this.el);
+    this.trackerProcess = ticker.createProcess(this.tracker.bind(this), this.el);
     this.thrustProcess = ticker.createProcess(this.thruster.bind(this), this.el);
     this.reverseThrustProcess = ticker.createProcess(ticker.iterator(ticker.msWaiter(ReverseThrustWait), this.reverseThruster.bind(this)), this.el);
     this.travelProcess = ticker.createProcess(this.traveller.bind(this), this.el);
@@ -46,11 +46,13 @@ aframe.registerComponent("spaceship", {
     this.gattlerRoundsProcess = ticker.createProcess(this.gattlerRoundsTraveller.bind(this), this.el);
 
     onLoadedDo(() => {
-      this.playspaceRadius = this.el.sceneEl.querySelector('#PlaySpace').components.geometry.data.radius;
-      this.gattlerRoundPool = this.el.sceneEl.querySelector('#Pools').components.mipool__gattler;
-      this.LeftTouch = this.el.sceneEl.querySelector('#leftHand').components.controller.Touch;
-      this.RightTouch = this.el.sceneEl.querySelector('#rightHand').components.controller.Touch;
-      this.Touch = this.RightTouch;
+      const sceneEl = this.el.sceneEl;
+      this.playspaceRadius = sceneEl.querySelector('#PlaySpace').components.geometry.data.radius;
+      this.gattlerRoundPool = sceneEl.querySelector('#Pools').components.mipool__gattler;
+      this.LeftTouch = sceneEl.querySelector('#leftHand').components.controller.Touch;
+      this.RightTouch = sceneEl.querySelector('#rightHand').components.controller.Touch;
+      this.compAsteroids = sceneEl.querySelector('#Asteroids').components.asteroids;
+      this.compUfos = sceneEl.querySelector('#Ufos').components.ufos;
     });
 
     this.quat = new THREE.Quaternion();
@@ -67,12 +69,45 @@ aframe.registerComponent("spaceship", {
   remove() {
     this.sysController.removeListeners(this);
     this.sysKeyboard.removeListeners(this);
-    this.travelProcess.stop();
-    this.gattlerRoundsProcess.stop();
+    stopProcesses(this);
+    this.trackerProcess.stop();
   },
 
-  'enter-vr': bindEvent({ target: 'a-scene' }, function () { this.sysKeyboard.removeListeners(this) }),
-  'exit-vr': bindEvent({ target: 'a-scene' }, function () { this.sysKeyboard.addListeners(this) }),
+  newGame() {
+    stopProcesses(this);
+    this.el.object3D.position.set(0, 0, 0); // Initial position
+    this.el.object3D.quaternion.set(0, 0, 0, 1); // Initial rotation
+  },
+  startLevel() {
+    stopProcesses(this);
+    this.gattlerRounds.forEach(el => { this.gattlerRoundPool.returnEntity(el) });
+    this.gattlerRounds.length = 0;
+    this.velocity.set(0, 0, 0);
+    this.thrusterCounter = 0;
+  },
+
+  'enter-vr': bindEvent({ target: 'a-scene' }, function () {
+    onLoadedDo(() => {
+      this.Touch = this.RightTouch;
+      this.trackerProcess.start();
+    });
+    this.sysKeyboard.removeListeners(this);
+  }),
+  'exit-vr': bindEvent({ target: 'a-scene' }, function () {
+    this.trackerProcess.stop();
+    this.Touch = undefined;
+    this.sysKeyboard.addListeners(this);
+  }),
+
+  collisionstart: bindEvent(function (evt) {
+    console.log('spaceship hit');
+    this[`collision_${evt.detail.layer1}_${evt.detail.layer2}`](evt.detail.el1, evt.detail.el2);
+  }),
+  collision_gattler_asteroid(elRound, elAsteroid) {
+    const idx = this.gattlerRounds.indexOf(elRound);
+    if (idx >= 0) destroyGattlerRound(this, elRound, idx);
+    this.compAsteroids.hit(elAsteroid);
+  },
 
   thrust_down() { return this.keydown_thrust() },
   thrust_up() { return this.keyup_thrust() },
@@ -195,7 +230,7 @@ function fireGattlerRound(ss) {
   ss.gattlerRounds.push(el);
   ss.axis.copy(ss.yAxis).applyQuaternion(ss.el.object3D.quaternion);
   ss.quat.setFromAxisAngle(ss.axis, THREE.Math.degToRad(180));
-  ss.v1.copy(ss.zAxis).applyQuaternion(ss.el.object3D.quaternion).setLength(ss.gattlerRoundAdjustment);
+  ss.v1.copy(ss.zAxis).applyQuaternion(ss.el.object3D.quaternion).setLength(GattlerRoundAdjustment);
   el.object3D.position.copy(ss.el.object3D.position).add(ss.v1);
   el.object3D.quaternion.copy(ss.el.object3D.quaternion); el.object3D.applyQuaternion(ss.quat);
   if (!el.__ssVelocity) el.__ssVelocity = new THREE.Vector3();
@@ -210,4 +245,12 @@ function rotate(ss, axis, flNegate, factor) {
   if (flNegate) ss.quat.conjugate();
   ss.el.object3D.applyQuaternion(ss.quat);
   return true;
+}
+
+function stopProcesses(ss) {
+  ss.thrustProcess.stop();
+  ss.reverseThrustProcess.stop();
+  ss.travelProcess.stop();
+  ss.gattlerProcess.stop();
+  ss.gattlerRoundsProcess.stop();
 }

@@ -27,17 +27,22 @@
   </a-entity>
 
   <a-assets timeout="30000">
-    <a-mixin id="GattlerRound" scale="0.75 0.75 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:white"></a-mixin>
-    <a-mixin id="LargeAsteroid" scale="2 2 2" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+    <a-mixin id="GattlerRound" scale="0.1125 0.1125 0.30" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:white"
+      collider="layer:gattler;collidesWith:asteroid;shape:sphere;radius:0.001;eventTarget:#SpaceShip">
+    </a-mixin>
+    <a-mixin id="LargeAsteroid" scale="0.30 0.30 0.30" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"
+      collider="layer:asteroid; shape:sphere;radius:0.03">
+    </a-mixin>
+    <a-mixin id="SmallAsteroid" scale="0.15 0.15 0.15" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-mixin>
-    <a-mixin id="SmallAsteroid" scale="1 1 1" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-mixin>
-    <a-mixin id="TinyAsteroid" scale="0.50 0.50 0.50" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-mixin>
-    <a-mixin id="Ufo" scale="2 2 2" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+    <a-mixin id="TinyAsteroid" scale="0.075 0.075 0.075"
+      gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
+      outline="color:#6D68FF;thickness:-0.002"></a-mixin>
+    <a-mixin id="Ufo" scale="0.30 0.30 0.30" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-mixin>
-    <a-mixin id="SmallUfo" scale="0.75 0.75 0.75" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+    <a-mixin id="SmallUfo" scale="0.1125 0.1125 0.1125" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-mixin>
 
     <image id="sky" src="./assets/sky/env.png"></image>
@@ -80,10 +85,14 @@
     <a-entity position="0.057 0.350 -0.381">
       <a-entity mi__text="|defaults:|value:ASTEROIDS   IN    HYPERSPACE;width:2.1" position="0.026 0.365 0"></a-entity>
       <a-button class="ui cursor-splash" bstyle="DefaultButton" key="F1" btext="value:ENTER"
-        bstate="#scene.chain.Newgame" position="0.026 0.250 0"></a-button>
+        bstate="#scene.chain.MainMenu" position="0.026 0.250 0"></a-button>
       <a-entity mi__text="|defaults:|value:!! GAME    UNDER     CONSTRUCTION !!;width:1.5" position="0.026 0.170 0">
       </a-entity>
     </a-entity>
+  </a-entity>
+
+  <a-entity id="PauseGame" position="0 1.2 -0.5" visible="false">
+    <a-image src="#micosmo" position="0 1.107 -0.415" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
     <a-entity position="0 -0.265 -0.300">
       <a-entity position="-.25 1.2 0" scale="2 2 2" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
         material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-entity>
@@ -94,10 +103,6 @@
       <a-entity position=".40 1.2 0" scale="2 2 2" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
         material="shader:flat;color:black" outline="color:#81FFFC;thickness:-0.002"></a-entity>
     </a-entity>
-  </a-entity>
-
-  <a-entity id="PauseGame" position="0 1.2 -0.5" visible="false">
-    <a-image src="#micosmo" position="0 1.107 -0.415" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
     <a-entity position="0.057 0.350 -0.381">
       <a-entity mi__text="|defaults:|value:ASTEROIDS   IN    HYPERSPACE;width:2.1" position="0.026 0.365 0"></a-entity>
       <a-entity mi__text="|defaults:|value: GAME    PAUSED;width:1.5" position="0.026 0.250 0">
@@ -105,10 +110,8 @@
       <a-entity position="-0.100 0.150 0">
         <a-button class="ui cursor-pause" bstyle="DefaultButton" key="F1" btext="value:Continue" bstate="#scene.return"
           position="0 0 0"></a-button>
-        <a-button class="ui cursor-pause" bstyle="DefaultButton" key="F2" btext="value:Menu"
+        <a-button class="ui cursor-pause" bstyle="DefaultButton" key="F2" btext="value:Exit"
           bstate="#scene.return.MainMenu" position="0.120 0 0"></a-button>
-        <a-button class="ui cursor-pause" bstyle="DefaultButton" key="F3" btext="value:Loading"
-          bstate="#scene.return.Loading" position="0.240 0 0"></a-button>
       </a-entity>
     </a-entity>
   </a-entity>
@@ -125,11 +128,13 @@
         shadeless-recursive></a-entity>-->
     </a-entity>
 
-    <a-entity id="MainMenu" position="0.026 0.26 0" visible="false">
+    <a-entity id="MainMenu" position="0 1.107 -0.415" visible="false">
+      <a-image src="#micosmo" position="0 0 0" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
+      <a-entity mi__text="|defaults:|value:MAIN   MENU;width:2.1" position="0.120 -0.450 0"></a-entity>
       <a-button class="ui cursor-menu" bstyle="DefaultButton" key="F1" btext="value:BEGIN" bstate="#scene.chain.Newgame"
-        position="0.026 0.250 0">
+        position="0.115 -0.580 0">
       </a-button>
-      <a-entity id="credits" position="0.255 -0.293 0.329">
+      <a-entity id="credits" position="0.652 -1.120 0.012">
         <a-entity mi__text="|defaults:|value:MUSIC      BY      POCKETMASTER;" position="0.026 0.365 0"
           scale="0.25 0.25 0.25"></a-entity>
         <a-entity mi__text="|defaults:|value:WWW      POCKETMASTER      CH;" position="0.026 0.355 0"
@@ -141,14 +146,14 @@
       mipool__lasteroid="mixin: LargeAsteroid; container: #Asteroids; size: 5; maxSize: 20"
       mipool__sasteroid="mixin: SmallAsteroid; container: #Asteroids; size: 10; maxSize: 30"
       mipool__tasteroid="mixin: TinyAsteroid; container: #Asteroids; size: 15; maxSize: 50"
-      mipool__ufo="mixin: Ufo; container: #Ufos; size: 2" mipool__sufo="mixin: SmallUfo; container: #Ufos; size: 4">
+      mipool__ufo="mixin: Ufo; container: #Ufos; size: 4" mipool__sufo="mixin: SmallUfo; container: #Ufos; size: 8">
     </a-entity>
 
-    <a-entity id="Game" position="0.026 0.26 0" ticker scale="0.15 0.15 0.15" visible="false">
-      <a-entity id="PlaySpace" geometry="primitive:sphere; radius:2;"
+    <a-entity id="Game" position="0.026 0.085 0.330" ticker game="level:1" visible="false">
+      <a-entity id="PlaySpace" geometry="primitive:sphere; radius:0.30;"
         material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.25" playspace
-        ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.75 -2.00">
-        <a-entity id="SpaceShip" position="0 0 0" scale="2 2 2"
+        ctrlmap="rotate:stick, rotate:pad" keyMap="|MotionKeys:rotate|" position="0 0.263 -0.30">
+        <a-entity id="SpaceShip" position="0 0 0" scale="0.30 0.30 0.30"
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
           outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 5"
           ctrlmap="thrust:x, thrust:a, thrust:pad, leftTrigger:ltrig, rightTrigger:rtrig"
@@ -161,6 +166,14 @@
         <a-entity id="Asteroids" asteroids></a-entity>
         <a-entity id="Ufos" ufos></a-entity>
       </a-entity>
+    </a-entity>
+
+    <a-entity id="EndGame" position="0 1.107 -0.415" visible="false">
+      <a-image src="#micosmo" position="0 0 0" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
+      <a-entity mi__text="|defaults:|value:GAME   ENDED;width:2.1" position="0.120 -0.450 0"></a-entity>
+      <a-button class="ui cursor-endgame" bstyle="DefaultButton" key="F1" btext="value:Menu"
+        bstate="#scene.chain.MainMenu" position="0.115 -0.580 0">
+      </a-button>
     </a-entity>
 
   </a-entity>

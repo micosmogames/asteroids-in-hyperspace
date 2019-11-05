@@ -18,3 +18,4 @@ import "./playspace";
 import "./spaceship";
 import "./asteroids";
 import "./ufos";
+import "./game";

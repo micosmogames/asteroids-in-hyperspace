@@ -6,7 +6,7 @@ import { onLoadedDo } from '@micosmo/aframe/startup';
 import { noVisibilityChecks as noKeyboardVisibilityChecks } from '@micosmo/aframe/keyboard';
 
 const _ = undefined;
-const PositionStates = [['Loading', 'Pause'], 'MainMenu', 'Newgame', 'Nextlevel', 'Playing', 'Endlevel', 'Endgame'];
+const PositionStates = [['Loading', 'Pause'], ['MainMenu', 'Endgame'], 'Nextlevel', 'Playing', 'Endlevel'];
 
 aframe.registerComponent('gamestate', {
   schema: {
@@ -25,6 +25,7 @@ aframe.registerComponent('gamestate', {
     this.GameBoard = scene.querySelector('#GameBoard');
     this.Jukebox = scene.querySelector('[jukebox]');
     this.MainMenu = scene.querySelector('#MainMenu');
+    this.EndGame = scene.querySelector('#EndGame');
     this.PauseGame = scene.querySelector('#PauseGame');
     this.Game = scene.querySelector('#Game');
     this.Env1 = scene.querySelector('#env-1');
@@ -82,7 +83,7 @@ aframe.registerComponent('gamestate', {
   gamestatechanged: bindEvent(function (evt) {
     const detail = evt.detail;
     this.oldData.state = this.data.state = detail.to.state; // Keep gamestate data up to date.
-    console.info(`micosmo:component:gamestate:gamestatechanged: '${detail.from.state}' to '${detail.to.state}' by '${detail.op}'`);
+    console.info(`micosmo:component:gamestate:gamestatechanged: '${detail.op}' to '${detail.to.state}' from '${detail.from.state}'`);
     var statePosition = this.statePositions[detail.from.state];
     if (statePosition && detail.from.action === 'exit') {
       statePosition.playerPosition.copy(this.Player.object3D.position);
@@ -120,19 +121,40 @@ aframe.registerComponent('gamestate', {
   recenterMainMenu() { recenterElement(this, this.MainMenu) },
 
   enterNewgame() {
+    this.Game.components.game.newGame();
+    this.compStates.chain('Nextlevel');
+  },
+
+  enterNextlevel() {
+    this.Game.components.game.nextLevel();
+  },
+
+  enterPlaying() {
     this.Jukebox.setAttribute('jukebox', 'state', 'on');
     this.GameBoard.object3D.visible = true;
     this.Env1.object3D.visible = true;
     startElement(this.Game);
     this.compHeadless.startRaycaster('.cursor-game');
   },
-  exitNewgame() {
+  exitPlaying() {
     stopElement(this.Game);
     this.GameBoard.object3D.visible = false;
     this.Env1.object3D.visible = false;
     this.compHeadless.stopRaycaster();
   },
-  recenterNewgame() { recenterElement(this, this.Game) },
+  recenterPlaying() { recenterElement(this, this.Game) },
+
+  enterEndgame() {
+    this.GameBoard.object3D.visible = true;
+    startElement(this.EndGame);
+    this.compHeadless.startRaycaster('.cursor-endgame');
+  },
+  exitEndgame() {
+    stopElement(this.EndGame);
+    this.GameBoard.object3D.visible = false;
+    this.compHeadless.stopRaycaster();
+  },
+  recenterEndgame() { recenterElement(this, this.EndGame) },
 
   enterPause() {
     startElement(this.PauseGame);
