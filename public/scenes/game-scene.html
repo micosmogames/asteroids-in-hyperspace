@@ -1,6 +1,9 @@
-<a-scene id="scene" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,Test:-any" ctrlmap="Pause:stick, Pause:menu"
-  inspector-events fog="type:exponential; color:#040f19; density:0.17" gamma="true"
-  gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Recenter">
+<a-scene id="scene" inspector-events fog="type:exponential; color:#040f19; density:0.17" gamma="true">
+
+  <a-entity id="GameState" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,Test:-any"
+    ctrlmap="Pause:stick, Pause:menu"
+    gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Recenter">
+  </a-entity>
 
   <a-entity id="DataGroups">
     <a-datagroup id="defaults" dataset__font="font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;"
@@ -29,21 +32,29 @@
   <a-assets timeout="30000">
     <a-mixin id="GattlerRound" scale="0.1125 0.1125 0.30" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
       material="shader:flat;color:white"
-      collider="layer:gattler;collidesWith:asteroid;shape:sphere;radius:0.001;eventTarget:#SpaceShip">
+      collider="layer:gattler;collidesWith:asteroid,ufo;shape:sphere;radius:0.010;eventTarget:#SpaceShip">
     </a-mixin>
+
     <a-mixin id="LargeAsteroid" scale="0.30 0.30 0.30" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"
-      collider="layer:asteroid; shape:sphere;radius:0.03">
+      collider="layer:asteroid; shape:sphere;radius:0.045">
     </a-mixin>
-    <a-mixin id="SmallAsteroid" scale="0.15 0.15 0.15" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"></a-mixin>
-    <a-mixin id="TinyAsteroid" scale="0.075 0.075 0.075"
+
+    <a-mixin id="SmallAsteroid" scale="0.225 0.225 0.225"
       gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
-      outline="color:#6D68FF;thickness:-0.002"></a-mixin>
+      outline="color:#6D68FF;thickness:-0.002" collider="layer:asteroid; shape:sphere;radius:0.045"></a-mixin>
+
+    <a-mixin id="TinyAsteroid" scale="0.15 0.15 0.15" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"
+      collider="layer:asteroid; shape:sphere;radius:0.045"></a-mixin>
+
     <a-mixin id="Ufo" scale="0.30 0.30 0.30" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-mixin>
-    <a-mixin id="SmallUfo" scale="0.1125 0.1125 0.1125" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"></a-mixin>
+      material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
+      collider="layer:ufo; shape:sphere;radius:0.013"></a-mixin>
+
+    <a-mixin id="SmallUfo" scale="0.20 0.20 0.20" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
+      collider="layer:ufo; shape:sphere;radius:0.013"></a-mixin>
 
     <image id="sky" src="./assets/sky/env.png"></image>
     <image id="sky2" src="./assets/sky/env-bottomless.png"></image>
@@ -82,8 +93,22 @@
 
   <a-entity id="SplashScreen" position="0 1.2 -0.5" visible="false">
     <a-image src="#micosmo" position="0 1.107 -0.415" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
+
+    <!-- Following is used to determine the size of colliders -->
+    <!--a-entity position="-1.000 1.000 -0.381">
+      <a-entity position="0.000 0.000 0.000">
+        <a-entity scale="1 1 1" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+          material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002">
+        </a-entity>
+        <a-entity position=" 0.000 0.000 0.000" geometry="primitive:sphere; radius:0.013"
+          material="shader:flat;color:white">
+        </a-entity>
+      </a-entity>
+    </a-entity-->
+
     <a-entity position="0.057 0.350 -0.381">
-      <a-entity mi__text="|defaults:|value:ASTEROIDS   IN    HYPERSPACE;width:2.1" position="0.026 0.365 0"></a-entity>
+      <a-entity mi__text="|defaults:|value:ASTEROIDS   IN    HYPERSPACE;width:2.1" position="0.026 0.365 0">
+      </a-entity>
       <a-button class="ui cursor-splash" bstyle="DefaultButton" key="F1" btext="value:ENTER"
         bstate="#scene.chain.MainMenu" position="0.026 0.250 0"></a-button>
       <a-entity mi__text="|defaults:|value:!! GAME    UNDER     CONSTRUCTION !!;width:1.5" position="0.026 0.170 0">
@@ -104,7 +129,8 @@
         material="shader:flat;color:black" outline="color:#81FFFC;thickness:-0.002"></a-entity>
     </a-entity>
     <a-entity position="0.057 0.350 -0.381">
-      <a-entity mi__text="|defaults:|value:ASTEROIDS   IN    HYPERSPACE;width:2.1" position="0.026 0.365 0"></a-entity>
+      <a-entity mi__text="|defaults:|value:ASTEROIDS   IN    HYPERSPACE;width:2.1" position="0.026 0.365 0">
+      </a-entity>
       <a-entity mi__text="|defaults:|value: GAME    PAUSED;width:1.5" position="0.026 0.250 0">
       </a-entity>
       <a-entity position="-0.100 0.150 0">

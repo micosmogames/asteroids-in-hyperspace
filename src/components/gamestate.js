@@ -36,6 +36,7 @@ aframe.registerComponent('gamestate', {
     onLoadedDo(() => {
       this.compHeadless = scene.querySelector('[headless-controller]').components['headless-controller'];
     });
+    this.pauseCount = 0;
   },
 
   update(oldData) {
@@ -44,12 +45,12 @@ aframe.registerComponent('gamestate', {
       // Should only be ignoring 'Loading' anyway
       this.compStates.chain(this.data.state);
     }
-    if (!this.compStates && !this.el.getAttribute('states'))
-      this.el.setAttribute('states', { list: this.data.states, event: 'gamestatechanged' });
-    this.compStates = this.el.components.states;
+    if (!this.compStates && !this.el.sceneEl.getAttribute('states'))
+      this.el.sceneEl.setAttribute('states', { list: this.data.states, event: 'gamestatechanged' });
+    this.compStates = this.el.sceneEl.components.states;
   },
 
-  startupComplete: bindEvent(function () {
+  startupComplete: bindEvent({ target: 'a-scene' }, function () {
     this.initialised = true;
     this.initPlayerPosition = this.Player.object3D.position.clone();
     this.compRecenter = this.Player.components.recenter;
@@ -73,14 +74,16 @@ aframe.registerComponent('gamestate', {
   }),
 
   // Recenter state is a simple flip/flop to pause the element in focus.
-  startrecenter: bindEvent({ target: '#scene' }, function () {
+  startrecenter: bindEvent({ target: 'a-scene' }, function () {
+    pauseGameState(this);
     this.compStates.call('Recenter', this.recenterContext);
   }),
-  endrecenter: bindEvent({ target: '#scene' }, function () {
+  endrecenter: bindEvent({ target: 'a-scene' }, function () {
+    playGameState(this);
     this.compStates.return(_, _, this.recenterContext);
   }),
 
-  gamestatechanged: bindEvent(function (evt) {
+  gamestatechanged: bindEvent({ target: 'a-scene' }, function (evt) {
     const detail = evt.detail;
     this.oldData.state = this.data.state = detail.to.state; // Keep gamestate data up to date.
     console.info(`micosmo:component:gamestate:gamestatechanged: '${detail.op}' to '${detail.to.state}' from '${detail.from.state}'`);
@@ -157,12 +160,14 @@ aframe.registerComponent('gamestate', {
   recenterEndgame() { recenterElement(this, this.EndGame) },
 
   enterPause() {
+    pauseGameState(this);
     startElement(this.PauseGame);
     this.jukeboxState = this.Jukebox.components.jukebox.data.state;
     this.Jukebox.setAttribute('jukebox', 'state', 'pause');
     this.compHeadless.startRaycaster('.cursor-pause');
   },
   exitPause() {
+    playGameState(this);
     stopElement(this.PauseGame);
     if (this.jukeboxState === 'on')
       this.Jukebox.setAttribute('jukebox', 'state', 'on');
@@ -248,6 +253,16 @@ function stopElement(el) {
 function recenterElement(gs, el) {
   if (gs.data.state === 'Recenter') el.pause();
   else el.play();
+}
+
+function pauseGameState(gs) {
+  if (gs.pauseCount++ === 0)
+    gs.el.pause(); // Pause the gamestate controls and keys
+}
+
+function playGameState(gs) {
+  if (--gs.pauseCount === 0)
+    gs.el.play();
 }
 
 /*

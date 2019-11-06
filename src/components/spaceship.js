@@ -9,14 +9,14 @@ import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 const MaxPitchYaw = THREE.Math.degToRad(2); // In degrees
 const KeyPitchYawFactor = 6;
-const MaxSpeed = 0.10; // m/s
+const MaxSpeed = 0.15; // m/s
 const Thrust = MaxSpeed * 2; // m/s/s
 const ReverseThrust = Thrust / 4; // m/s/s
 const ReverseThrustWait = 250;
-const GattlerRoundSpeed = MaxSpeed * 3;
+const GattlerRoundSpeed = MaxSpeed * 4;
 const GattlerRoundAdjustment = 0.00525;
 const GattlerRounds = 5;
-const TouchAngularRotation = THREE.Math.degToRad(270); // Degrees / s
+const TouchAngularRotation = THREE.Math.degToRad(359); // Degrees / s
 
 aframe.registerComponent("spaceship", {
   schema: {
@@ -100,7 +100,6 @@ aframe.registerComponent("spaceship", {
   }),
 
   collisionstart: bindEvent(function (evt) {
-    console.log('spaceship hit');
     this[`collision_${evt.detail.layer1}_${evt.detail.layer2}`](evt.detail.el1, evt.detail.el2);
   }),
   collision_gattler_asteroid(elRound, elAsteroid) {

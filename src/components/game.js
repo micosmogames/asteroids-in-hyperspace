@@ -75,6 +75,11 @@ function initialiseLevels() {
   for (let i = 1; ; i = i + 1) {
     if (!Levels[i]) return;
     const ast = Levels[i].asteroids; const ufo = Levels[i].ufos;
+    if (ast.count) {
+      if (!ast.large.count) ast.large.count = ast.count;
+      if (!ast.small.count) ast.small.count = ast.count;
+      if (!ast.tiny.count) ast.tiny.count = ast.count;
+    }
     if (ast.speed) {
       if (!ast.large.speed) ast.large.speed = ast.speed;
       if (!ast.small.speed) ast.small.speed = ast.speed * LevelSpeedFactor;

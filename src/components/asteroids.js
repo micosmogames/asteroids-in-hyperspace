@@ -47,10 +47,11 @@ aframe.registerComponent("asteroids", {
 
   newGame() { this.asteroids.forEach(el => { this.asteroidPools[el.__asteroid.pool].returnEntity(el) }) },
   startLevel(cfg, lp) {
+    this.cfg = cfg;
     this.travelProcess.restart();
     this.exhaustedPromise = lp;
     const lcfg = cfg.large;
-    for (let i = 0; i < cfg.count; i++) {
+    for (let i = 0; i < lcfg.count; i++) {
       const el = this.asteroidPools.large.requestEntity();
       randomiseVector(el.object3D.position, this.playspaceRadius - 0.1); // Random start position
       randomiseVector(this.v1, this.playspaceRadius / 2);
@@ -67,9 +68,11 @@ aframe.registerComponent("asteroids", {
     if (idx < 0 || --el.__asteroid.hits > 0)
       return;
     removeIndex(this.asteroids, idx);
+    if (el.__asteroid.pool !== 'tiny')
+      splitAsteroid(this, el);
     this.asteroidPools[el.__asteroid.pool].returnEntity(el);
     if (this.asteroids.length === 0)
-      this.exhaustedPromise.resolve()
+      this.exhaustedPromise.resolve();
   },
 
   traveller(tm, dt) {
@@ -78,13 +81,33 @@ aframe.registerComponent("asteroids", {
       vPos.addScaledVector(el.__asteroid.velocity, dt / 1000);
       el.object3D.rotateOnAxis(el.__asteroid.rotationAxis, el.__asteroid.angularSpeed * dt / 1000);
       if (vPos.length() >= this.playspaceRadius) {
-        // Loop back in from the other side on the same headng and velocity.
+        // Loop back in from the other side but randomise the heading
         vPos.negate();
+        randomiseVector(this.v1, this.playspaceRadius / 1.5);
+        this.PlaySpace.object3D.getWorldPosition(this.v2).add(this.v1);
+        el.object3D.lookAt(this.v2); // Random direction but facing inwards
+        const speed = el.__asteroid.velocity.length();
+        el.__asteroid.velocity.copy(this.zAxis).applyQuaternion(el.object3D.quaternion).setLength(speed);
       }
     })
     return 'more';
   },
 });
+
+function splitAsteroid(self, targetEl) {
+  const pool = targetEl.__asteroid.pool === 'large' ? 'small' : 'tiny'
+  const cfg = self.cfg[pool];
+  for (let i = cfg.count; i > 0; i--) {
+    const el = self.asteroidPools[pool].requestEntity();
+    el.object3D.position.copy(targetEl.object3D.position);
+    randomiseVector(self.v1, self.playspaceRadius - 0.1); // Random direction
+    self.PlaySpace.object3D.getWorldPosition(self.v2).add(self.v1);
+    el.object3D.lookAt(self.v2); // Random direction facing outwards
+    self.asteroids.push(initAsteroid(self, el, cfg, pool));
+    el.object3D.visible = true;
+    el.play();
+  }
+}
 
 function initAsteroid(self, el, cfg, pool) {
   if (!el.__asteroid) el.__asteroid = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
