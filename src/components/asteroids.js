@@ -8,6 +8,7 @@ import * as ticker from "@micosmo/ticker/aframe-ticker";
 const RefSpeed = 0.20; // m/s
 const RefAngularSpeed = THREE.Math.degToRad(180); // Degrees / s
 // const Pools = ['large', 'small', 'tiny'];
+const Mass = { large: 4, small: 2, tiny: 1 };
 
 aframe.registerComponent("asteroids", {
   schema: { default: '' },
@@ -42,10 +43,15 @@ aframe.registerComponent("asteroids", {
   update(oldData) {
   },
   remove() {
+    this.reset();
+  },
+  reset() {
     this.travelProcess.stop();
+    this.asteroids.forEach(el => { this.asteroidPools[el.__asteroid.pool].returnEntity(el) });
+    this.asteroids.length = 0;
   },
 
-  newGame() { this.asteroids.forEach(el => { this.asteroidPools[el.__asteroid.pool].returnEntity(el) }) },
+  newGame() { this.reset() },
   startLevel(cfg, lp) {
     this.cfg = cfg;
     this.travelProcess.restart();
@@ -61,18 +67,6 @@ aframe.registerComponent("asteroids", {
       el.object3D.visible = true;
       el.play();
     }
-  },
-
-  hit(el) {
-    const idx = this.asteroids.indexOf(el);
-    if (idx < 0 || --el.__asteroid.hits > 0)
-      return;
-    removeIndex(this.asteroids, idx);
-    if (el.__asteroid.pool !== 'tiny')
-      splitAsteroid(this, el);
-    this.asteroidPools[el.__asteroid.pool].returnEntity(el);
-    if (this.asteroids.length === 0)
-      this.exhaustedPromise.resolve();
   },
 
   traveller(tm, dt) {
@@ -92,6 +86,29 @@ aframe.registerComponent("asteroids", {
     })
     return 'more';
   },
+
+  gattlerHit(el) {
+    const idx = this.asteroids.indexOf(el);
+    if (idx < 0 || --el.__asteroid.hits > 0)
+      return;
+    removeIndex(this.asteroids, idx);
+    if (el.__asteroid.pool !== 'tiny')
+      splitAsteroid(this, el);
+    this.asteroidPools[el.__asteroid.pool].returnEntity(el);
+    if (this.asteroids.length === 0) {
+      this.exhaustedPromise.resolve();
+      this.travelProcess.stop();
+    }
+  },
+  collision(el1, el2) {
+    // Transfer of momentum based calculation where M(Momentum) = v(Velocity) * m(Mass);
+    // M1 = v1 * m1; M2 = v2 * m2;
+    // New v1 = M2 / m1 & New v2 = M1 / m2;
+    const M1 = this.v1.copy(el1.__asteroid.velocity).multiplyScalar(el1.__asteroid.mass);
+    const M2 = this.v2.copy(el2.__asteroid.velocity).multiplyScalar(el2.__asteroid.mass);
+    el1.__asteroid.velocity.copy(M2).divideScalar(el1.__asteroid.mass);
+    el2.__asteroid.velocity.copy(M1).divideScalar(el2.__asteroid.mass);
+  }
 });
 
 function splitAsteroid(self, targetEl) {
@@ -109,13 +126,16 @@ function splitAsteroid(self, targetEl) {
   }
 }
 
+let IdAsteroid = 0;
 function initAsteroid(self, el, cfg, pool) {
   if (!el.__asteroid) el.__asteroid = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
+  el.__asteroid.id = ++IdAsteroid;
   el.__asteroid.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(cfg.speed * RefSpeed);
   el.__asteroid.hits = cfg.hits;
   randomiseVector(el.__asteroid.rotationAxis, 1).normalize();
   el.__asteroid.angularSpeed = cfg.rotation * RefAngularSpeed;
   el.__asteroid.pool = pool;
+  el.__asteroid.mass = Mass[pool];
   return el;
 }
 

@@ -17,8 +17,8 @@ aframe.registerComponent("headless-controller", {
     rayInterval: { type: 'int', default: 0 },
     triggerCacheTimeout: { type: 'number', default: 0.0 },
     triggers: { type: 'array', default: [] },
-    recenterMove: { default: 0.50 }, // m/s
-    recenterRotate: { default: 90 } // In degrees / s
+    recenterMove: { default: 2.00 }, // m/s
+    recenterRotate: { default: 180 } // In degrees / s
   },
   dependencies: ['cursor', 'raycaster', 'geometry', 'material'],
   init() {
@@ -31,14 +31,7 @@ aframe.registerComponent("headless-controller", {
     this.Recenter = this.el.sceneEl.querySelector('[recenter]');
     if (this.Recenter) {
       this.el.sceneEl.systems.keyboard.addListeners(this, 'Recenter');
-      onLoadedDo(() => { this.compRecenter = this.Recenter.components.recenter });
       this.recenterProcess = ticker.createProcess(this.recentering.bind(this));
-      // Create a Virtual Controller element at the same level as the camera and at the same position.
-      this.VC = document.createElement('a-entity');
-      this.VC.setAttribute('id', 'VirtualController');
-      this.VC.object3D.visible = false;
-      this.Recenter.parentEl.appendChild(this.VC);
-      onLoadedDo(() => this.VC.object3D.position.copy(this.Recenter.object3D.position));
     }
 
     this.flHMDDetected = undefined; // Require 3 checkable states.
@@ -72,13 +65,17 @@ aframe.registerComponent("headless-controller", {
   toggleCursor() {
     if (this.Cursor.components.raycaster.data.enabled) {
       this.Cursor.object3D.visible = false;
+      this.saveCursorRecenterPosition.copy(this.Recenter.object3D.position);
       this.Recenter.object3D.position.copy(this.saveRecenterPosition);
       this.Cursor.setAttribute('raycaster', 'enabled', 'false');
       this.Cursor.setAttribute('paused', 'true');
     } else {
       this.Cursor.object3D.visible = true;
       this.saveRecenterPosition.copy(this.Recenter.object3D.position);
-      this.Recenter.components.recenter.around(this.VC);
+      if (this.saveCursorRecenterPosition)
+        this.Recenter.object3D.position.copy(this.saveCursorRecenterPosition);
+      else
+        this.saveCursorRecenterPosition = new THREE.Vector3();
       this.Cursor.setAttribute('raycaster', 'enabled', 'true');
       this.Cursor.setAttribute('paused', 'false');
     }
@@ -102,7 +99,6 @@ aframe.registerComponent("headless-controller", {
 
   keydown_Recenter() {
     if (!this.flRecentering) {
-      this.compRecenter.start('keyboard');
       this.sysKB.addListeners(this, RecenterKeys);
       this.el.sceneEl.emit('startrecenter', undefined, false);
       this.recenterProcess.start();
@@ -115,30 +111,28 @@ aframe.registerComponent("headless-controller", {
       this.recenterProcess.stop();
       this.el.sceneEl.emit('endrecenter', undefined, false);
       this.sysKB.removeListeners(this, RecenterKeys);
-      this.compRecenter.stop();
     }
     this.flRecentering = false;
     return true;
   },
-  keydown_rup() { this.vRecenter.set(0, 1, 0, 0) },
-  keydown_rdown() { this.vRecenter.set(0, -1, 0, 0) },
-  keydown_rleft() { this.vRecenter.set(-1, 0, 0, 0) },
-  keydown_rright() { this.vRecenter.set(1, 0, 0, 0) },
-  keydown_rin() { this.vRecenter.set(0, 0, -1, 0) },
-  keydown_rout() { this.vRecenter.set(0, 0, 1, 0) },
-  keydown_rrotleft() { this.vRecenter.set(0, 0, 0, 1) },
-  keydown_rrotright() { this.vRecenter.set(0, 0, 0, -1) },
+  keydown_rup() { this.vRecenter.set(0, -1, 0, 0) },
+  keydown_rdown() { this.vRecenter.set(0, 1, 0, 0) },
+  keydown_rleft() { this.vRecenter.set(1, 0, 0, 0) },
+  keydown_rright() { this.vRecenter.set(-1, 0, 0, 0) },
+  keydown_rin() { this.vRecenter.set(0, 0, 1, 0) },
+  keydown_rout() { this.vRecenter.set(0, 0, -1, 0) },
+  keydown_rrotleft() { this.vRecenter.set(0, 0, 0, -1) },
+  keydown_rrotright() { this.vRecenter.set(0, 0, 0, 1) },
   recentering(tm, dt) {
     const vr = this.vRecenter; const distance = this.data.recenterMove * dt / 1000;
     this.v1.set(vr.x * distance, vr.y * distance, vr.z * distance);
-    this.VC.object3D.position.add(this.v1);
+    this.Recenter.object3D.position.add(this.v1);
     if (vr.w !== 0) {
       this.quat.setFromAxisAngle(this.yAxis, THREE.Math.degToRad(this.data.recenterRotate * dt / 1000));
       if (vr.w < 0) this.quat.conjugate();
-      this.VC.object3D.position.applyQuaternion(this.quat);
-      this.VC.object3D.applyQuaternion(this.quat);
+      this.Recenter.object3D.position.applyQuaternion(this.quat);
+      this.Recenter.object3D.applyQuaternion(this.quat);
     }
-    this.compRecenter.around(this.VC);
     vr.set(0, 0, 0, 0);
     return 'more'
   },

@@ -84,7 +84,7 @@ aframe.registerComponent("controller", {
   }),
 
   recenter_down() {
-    this.compRecenter.start('controller');
+    this.compRecenter.start();
     this.el.sceneEl.emit('startrecenter', undefined, false);
     this.recenterProcess = startProcess(() => { this.compRecenter.around(this.el); return 'more' })
     return true;

@@ -24,8 +24,7 @@ aframe.registerComponent("recenter", {
     this.sysController.removeListeners(this);
   },
   start(how) {
-    if (how === 'controller')
-      this.sysController.addListeners(this);
+    this.sysController.addListeners(this);
   },
   stop() {
     this.sysController.removeListeners(this);
@@ -52,7 +51,7 @@ aframe.registerComponent("recenter", {
       return true;
     }
     this.offsetProcess.restart();
-    this.offsetFactor.set(absX >= 0.1 ? x : 0, absY >= 0.1 ? y : 0, 0);
+    this.offsetFactor.set(absX >= 0.1 ? -x : 0, absY >= 0.1 ? y : 0, 0);
     return true;
   },
   zin_down() { this.offsetFactor.set(0, 0, -1); this.offsetProcess.restart(); return true },
@@ -65,5 +64,5 @@ aframe.registerComponent("recenter", {
     v.set(data.tuning.x * v.x * dt, data.tuning.y * v.y * dt, data.tuning.z * v.z * dt);
     this.currentOffset.add(v);
     return 'more';
-  }
+  },
 });

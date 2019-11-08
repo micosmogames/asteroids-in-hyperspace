@@ -16,7 +16,7 @@ const ReverseThrustWait = 250;
 const GattlerRoundSpeed = MaxSpeed * 4;
 const GattlerRoundAdjustment = 0.00525;
 const GattlerRounds = 5;
-const TouchAngularRotation = THREE.Math.degToRad(359); // Degrees / s
+const TouchAngularRotation = THREE.Math.degToRad(270); // Degrees / s
 
 aframe.registerComponent("spaceship", {
   schema: {
@@ -69,21 +69,23 @@ aframe.registerComponent("spaceship", {
   remove() {
     this.sysController.removeListeners(this);
     this.sysKeyboard.removeListeners(this);
-    stopProcesses(this);
+    this.reset();
     this.trackerProcess.stop();
   },
-
-  newGame() {
-    stopProcesses(this);
-    this.el.object3D.position.set(0, 0, 0); // Initial position
-    this.el.object3D.quaternion.set(0, 0, 0, 1); // Initial rotation
-  },
-  startLevel() {
+  reset() {
     stopProcesses(this);
     this.gattlerRounds.forEach(el => { this.gattlerRoundPool.returnEntity(el) });
     this.gattlerRounds.length = 0;
     this.velocity.set(0, 0, 0);
     this.thrusterCounter = 0;
+  },
+
+  newGame() {
+    this.el.object3D.position.set(0, 0, 0); // Initial position
+    this.el.object3D.quaternion.set(0, 0, 0, 1); // Initial rotation
+  },
+  startLevel() {
+    this.reset();
   },
 
   'enter-vr': bindEvent({ target: 'a-scene' }, function () {
@@ -98,15 +100,6 @@ aframe.registerComponent("spaceship", {
     this.Touch = undefined;
     this.sysKeyboard.addListeners(this);
   }),
-
-  collisionstart: bindEvent(function (evt) {
-    this[`collision_${evt.detail.layer1}_${evt.detail.layer2}`](evt.detail.el1, evt.detail.el2);
-  }),
-  collision_gattler_asteroid(elRound, elAsteroid) {
-    const idx = this.gattlerRounds.indexOf(elRound);
-    if (idx >= 0) destroyGattlerRound(this, elRound, idx);
-    this.compAsteroids.hit(elAsteroid);
-  },
 
   thrust_down() { return this.keydown_thrust() },
   thrust_up() { return this.keyup_thrust() },
@@ -202,7 +195,12 @@ aframe.registerComponent("spaceship", {
   keydown_pitchup() { return rotate(this, this.xAxis, false, KeyPitchYawFactor) },
   keydown_pitchdown() { return rotate(this, this.xAxis, true, KeyPitchYawFactor) },
   keydown_yawleft() { return rotate(this, this.yAxis, true, KeyPitchYawFactor) },
-  keydown_yawright() { return rotate(this, this.yAxis, false, KeyPitchYawFactor) }
+  keydown_yawright() { return rotate(this, this.yAxis, false, KeyPitchYawFactor) },
+
+  gattlerHit(elRound) {
+    const idx = this.gattlerRounds.indexOf(elRound);
+    if (idx >= 0) destroyGattlerRound(this, elRound, idx);
+  },
 });
 
 function moveGattlerRound(ss, el, dt) {

@@ -31,6 +31,8 @@ aframe.registerComponent('gamestate', {
     this.Env1 = scene.querySelector('#env-1');
     this.Player = scene.querySelector('#player');
     this.Cursor = scene.querySelector('#cursor');
+    this.WasdControls = scene.querySelector('[wasd-controls]');
+    this.wasdActive = false;
     this.el.sceneEl.systems.keyboard.addListeners(this);
     this.el.sceneEl.systems.controller.addListeners(this);
     onLoadedDo(() => {
@@ -214,6 +216,13 @@ aframe.registerComponent('gamestate', {
     if (this.data.state !== 'Pause')
       this.compStates.chain('MainMenu');
     return true;
+  },
+  keydown_wasd() {
+    if (this.WasdControls) {
+      this.wasdActive = !this.wasdActive;
+      this.WasdControls.setAttribute('wasd-controls', 'enabled', this.wasdActive);
+      return true;
+    }
   },
 
   score: 0,
