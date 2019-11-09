@@ -72,35 +72,61 @@ aframe.registerComponent("game", {
   },
 
   collisionstart: bindEvent(function (evt) {
-    this[`collision_${evt.detail.layer1}_${evt.detail.layer2}`](evt.detail.el1, evt.detail.el2);
+    this[`collisionstart_${evt.detail.layer1}_${evt.detail.layer2}`](evt.detail.el1, evt.detail.el2);
   }),
-  collision_gattler_asteroid(elRound, elAsteroid) {
+  collisionstart_gattler_asteroid(elRound, elAsteroid) {
     this.compSpaceShip.gattlerHit(elRound, elAsteroid);
     this.compAsteroids.gattlerHit(elAsteroid, elRound);
   },
-  collision_gattler_ufo(elRound, elUfo) {
+  collisionstart_gattler_ufo(elRound, elUfo) {
     this.compSpaceShip.gattlerHit(elRound, elUfo);
     this.compUfos.gattlerHit(elUfo, elRound);
   },
-  collision_asteroid_asteroid(el1, el2) {
+  collisionstart_asteroid_asteroid(el1, el2) {
     this.compAsteroids.collision(el1, el2);
   },
-  collision_ufosensor_asteroid(el1, el2) {
-    this.compUfos.avoidAsteroid(el1, el2);
+  collisionstart_ufosensor_asteroid(el1, el2) {
+    this.compUfos.startAvoidObstacle(el1, el2);
   },
-  collision_ufosensor_ufosensor(el1, el2) {
-    this.compUfos.avoid(el1, el2);
+  collisionstart_ufosensor_ufosensor(el1, el2) {
+    this.compUfos.startAvoidObstacle(el1, el2);
+  },
+  collisionstart_spaceship_ufo(el1, el2) {
+    this.compSpaceShip.collision(el1, el2);
+  },
+  collisionstart_spaceship_asteroid(el1, el2) {
+    this.compSpaceShip.collision(el1, el2);
+  },
+
+  collisionend: bindEvent(function (evt) {
+    this[`collisionend_${evt.detail.layer1}_${evt.detail.layer2}`](evt.detail.el1, evt.detail.el2);
+  }),
+  collisionend_gattler_asteroid(elRound, elAsteroid) {
+  },
+  collisionend_gattler_ufo(elRound, elUfo) {
+  },
+  collisionend_asteroid_asteroid(el1, el2) {
+  },
+  collisionend_ufosensor_asteroid(el1, el2) {
+    this.compUfos.endAvoidObstacle(el1, el2);
+  },
+  collisionend_ufosensor_ufosensor(el1, el2) {
+    this.compUfos.endAvoidObstacle(el1, el2);
+  },
+  collisionend_spaceship_ufo(el1, el2) {
+  },
+  collisionend_spaceship_asteroid(el1, el2) {
   },
 });
 
 var Levels = {
   1: {
-    asteroids: { count: 1, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 2 }, small: {}, tiny: {} },
-    ufos: { count: 0, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: { count: 1, timing: 1 }, small: {} }
+    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 2 }, small: {}, tiny: {} },
+    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: {}, small: { count: 0 } }
   },
-  3: {
+  2: {
     asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: {}, small: {}, tiny: {} },
-    ufos: { count: 0, speed: 0.25, timing: 120, accuracy: 0.10, hits: 1, large: {}, small: {} }
+    ufos: { count: 0, speed: 0.25, timing: 60, accuracy: 0.10, hits: 1, large: {}, small: { count: 2 } }
   },
 }
 

@@ -78,6 +78,7 @@ aframe.registerComponent("spaceship", {
     this.gattlerRounds.length = 0;
     this.velocity.set(0, 0, 0);
     this.thrusterCounter = 0;
+    this.lives = this.data.lives;
   },
 
   newGame() {
@@ -169,12 +170,25 @@ aframe.registerComponent("spaceship", {
     return 'more';
   },
 
-  leftTrigger_down() { this.Touch = this.LeftTouch; return this.keydown_trigger() },
-  leftTrigger_up() { return this.keyup_trigger() },
-  rightTrigger_down() { this.Touch = this.RightTouch; return this.keydown_trigger() },
-  rightTrigger_up() { return this.keyup_trigger() },
-  keydown_trigger() { this.gattlerProcess.restart(); return true },
-  keyup_trigger() { this.gattlerProcess.stop(); return true },
+  collision(el1, el2) {
+    if (--this.lives === 0)
+      this.el.sceneEl.components.states.chain('Endgame');
+  },
+
+  leftTrigger_down() { this.Touch = this.LeftTouch; this.gattlerProcess.restart(); return true },
+  leftTrigger_up() { this.gattlerProcess.stop(); return true },
+  rightTrigger_down() { this.Touch = this.RightTouch; this.gattlerProcess.restart(); return true },
+  rightTrigger_up() { this.gattlerProcess.stop(); return true },
+  triggerDown: bindEvent(function (evt) {
+    const el = evt.detail.triggerEl;
+    const dist = this.v1.copy(el.object3D.position).sub(this.el.object3D.position).length();
+    const travelTime = dist / GattlerRoundSpeed;
+    el.object3D.getWorldPosition(this.v1).addScaledVector(el.__game.velocity, travelTime);
+    this.el.object3D.lookAt(this.v1);
+    this.gattlerProcess.restart();
+    return true;
+  }),
+  triggerUp: bindEvent(function () { this.gattlerProcess.stop(); return true }),
   * gattler() {
     for (; ;) {
       fireGattlerRound(this);

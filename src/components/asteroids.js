@@ -47,7 +47,7 @@ aframe.registerComponent("asteroids", {
   },
   reset() {
     this.travelProcess.stop();
-    this.asteroids.forEach(el => { this.asteroidPools[el.__asteroid.pool].returnEntity(el) });
+    this.asteroids.forEach(el => { this.asteroidPools[el.__game.pool].returnEntity(el) });
     this.asteroids.length = 0;
   },
 
@@ -72,16 +72,16 @@ aframe.registerComponent("asteroids", {
   traveller(tm, dt) {
     this.asteroids.forEach(el => {
       const vPos = el.object3D.position;
-      vPos.addScaledVector(el.__asteroid.velocity, dt / 1000);
-      el.object3D.rotateOnAxis(el.__asteroid.rotationAxis, el.__asteroid.angularSpeed * dt / 1000);
+      vPos.addScaledVector(el.__game.velocity, dt / 1000);
+      el.object3D.rotateOnAxis(el.__game.rotationAxis, el.__game.angularSpeed * dt / 1000);
       if (vPos.length() >= this.playspaceRadius) {
         // Loop back in from the other side but randomise the heading
         vPos.negate();
         randomiseVector(this.v1, this.playspaceRadius / 1.5);
         this.PlaySpace.object3D.getWorldPosition(this.v2).add(this.v1);
         el.object3D.lookAt(this.v2); // Random direction but facing inwards
-        const speed = el.__asteroid.velocity.length();
-        el.__asteroid.velocity.copy(this.zAxis).applyQuaternion(el.object3D.quaternion).setLength(speed);
+        const speed = el.__game.velocity.length();
+        el.__game.velocity.copy(this.zAxis).applyQuaternion(el.object3D.quaternion).setLength(speed);
       }
     })
     return 'more';
@@ -89,12 +89,12 @@ aframe.registerComponent("asteroids", {
 
   gattlerHit(el) {
     const idx = this.asteroids.indexOf(el);
-    if (idx < 0 || --el.__asteroid.hits > 0)
+    if (idx < 0 || --el.__game.hits > 0)
       return;
     removeIndex(this.asteroids, idx);
-    if (el.__asteroid.pool !== 'tiny')
+    if (el.__game.pool !== 'tiny')
       splitAsteroid(this, el);
-    this.asteroidPools[el.__asteroid.pool].returnEntity(el);
+    this.asteroidPools[el.__game.pool].returnEntity(el);
     if (this.asteroids.length === 0) {
       this.exhaustedPromise.resolve();
       this.travelProcess.stop();
@@ -104,15 +104,15 @@ aframe.registerComponent("asteroids", {
     // Transfer of momentum based calculation where M(Momentum) = v(Velocity) * m(Mass);
     // M1 = v1 * m1; M2 = v2 * m2;
     // New v1 = M2 / m1 & New v2 = M1 / m2;
-    const M1 = this.v1.copy(el1.__asteroid.velocity).multiplyScalar(el1.__asteroid.mass);
-    const M2 = this.v2.copy(el2.__asteroid.velocity).multiplyScalar(el2.__asteroid.mass);
-    el1.__asteroid.velocity.copy(M2).divideScalar(el1.__asteroid.mass);
-    el2.__asteroid.velocity.copy(M1).divideScalar(el2.__asteroid.mass);
+    const M1 = this.v1.copy(el1.__game.velocity).multiplyScalar(el1.__game.mass);
+    const M2 = this.v2.copy(el2.__game.velocity).multiplyScalar(el2.__game.mass);
+    el1.__game.velocity.copy(M2).divideScalar(el1.__game.mass);
+    el2.__game.velocity.copy(M1).divideScalar(el2.__game.mass);
   }
 });
 
 function splitAsteroid(self, targetEl) {
-  const pool = targetEl.__asteroid.pool === 'large' ? 'small' : 'tiny'
+  const pool = targetEl.__game.pool === 'large' ? 'small' : 'tiny'
   const cfg = self.cfg[pool];
   for (let i = cfg.count; i > 0; i--) {
     const el = self.asteroidPools[pool].requestEntity();
@@ -128,14 +128,14 @@ function splitAsteroid(self, targetEl) {
 
 let IdAsteroid = 0;
 function initAsteroid(self, el, cfg, pool) {
-  if (!el.__asteroid) el.__asteroid = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
-  el.__asteroid.id = ++IdAsteroid;
-  el.__asteroid.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(cfg.speed * RefSpeed);
-  el.__asteroid.hits = cfg.hits;
-  randomiseVector(el.__asteroid.rotationAxis, 1).normalize();
-  el.__asteroid.angularSpeed = cfg.rotation * RefAngularSpeed;
-  el.__asteroid.pool = pool;
-  el.__asteroid.mass = Mass[pool];
+  if (!el.__game) el.__game = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
+  el.__game.id = ++IdAsteroid;
+  el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(cfg.speed * RefSpeed);
+  el.__game.hits = cfg.hits;
+  randomiseVector(el.__game.rotationAxis, 1).normalize();
+  el.__game.angularSpeed = cfg.rotation * RefAngularSpeed;
+  el.__game.pool = pool;
+  el.__game.mass = Mass[pool];
   return el;
 }
 

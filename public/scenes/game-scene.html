@@ -7,13 +7,14 @@
 
   <a-entity id="DataGroups">
     <a-datagroup id="defaults" dataset__font="font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;"
-      dataset__text="|font|align:center;color:#ffffff;negate:false;side:double;"></a-datagroup>
+      dataset__text="|font|align:center;color:#ffffff;negate:false;side:double;"
+      dataset__collider="policy:pool;shape:sphere;ignoreDuplicates:true;eventTarget:#Game">
+    </a-datagroup>
 
-    <a-datagroup id="pointer" dataset__attributes="class:cursor; position:0 0 -0.1"
-      dataset__geometry="primitive:sphere; radius:0.006"
-      dataset__material="shader:flat;color:blue;transparent:true;opacity:0.75"
-      dataset__line="start: 0 -0.010 0.090; end: 0 0 0.006; color:blue"
-      dataset__collider="collidesWith: ui;layer:cursor; radius: 0.006">
+    <a-datagroup id="pointer" ds__attributes="class:cursor; position:0 0 -0.1"
+      ds__geometry="primitive:sphere; radius:0.006" ds__material="shader:flat;color:blue;transparent:true;opacity:0.75"
+      ds__line="start: 0 -0.010 0.090; end: 0 0 0.006; color:blue"
+      ds__collider="collidesWith: ui;layer:cursor; radius: 0.006">
     </a-datagroup>
 
     <a-datagroup id="DefaultButton" dataset__geometry="primitive:box;depth:0.012;height:0.030;width:0.085"
@@ -31,36 +32,35 @@
 
   <a-assets timeout="30000">
     <a-mixin id="GattlerRound" scale="0.1125 0.1125 0.30" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
-      material="shader:flat;color:white"
-      collider="layer:gattler;collidesWith:asteroid,ufo;shape:sphere;radius:0.010; eventTarget:#Game">
+      material="shader:flat;color:white" mi__collider="|defaults:|layer:gattler;collidesWith:asteroid,ufo;radius:0.010">
     </a-mixin>
 
     <a-mixin id="LargeAsteroid" scale="0.30 0.30 0.30" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"
-      collider="layer:asteroid;collidesWith:asteroid; shape:sphere;radius:0.045; ignoreDuplicates:true; eventTarget:#Game">
+      mi__collider="|defaults:|layer:asteroid;collidesWith:asteroid;radius:0.045" trigger-target>
     </a-mixin>
 
     <a-mixin id="SmallAsteroid" scale="0.225 0.225 0.225"
       gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
       outline="color:#6D68FF;thickness:-0.002"
-      collider="layer:asteroid;collidesWith:asteroid; shape:sphere;radius:0.045; ignoreDuplicates:true; eventTarget:#Game">
+      mi__collider="|defaults:|layer:asteroid;collidesWith:asteroid;radius:0.045" trigger-target>
     </a-mixin>
 
     <a-mixin id="TinyAsteroid" scale="0.15 0.15 0.15" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"
-      collider="layer:asteroid;collidesWith:asteroid; shape:sphere;radius:0.045; ignoreDuplicates:true; eventTarget:#Game">
+      mi__collider="|defaults:|layer:asteroid;collidesWith:asteroid;radius:0.045" trigger-target>
     </a-mixin>
 
     <a-mixin id="Ufo" scale="0.50 0.50 0.50" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
-      collider="layer:ufo; shape:sphere;radius:0.013"
-      collider__sensor="layer:ufosensor;collidesWith:asteroid,ufosensor;shape:sphere;radius:0.100; ignoreDuplicates:true; eventTarget:#Game">
+      mi__collider="|defaults:|layer:ufo;radius:0.013"
+      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:0.050" trigger-target>
     </a-mixin>
 
     <a-mixin id="SmallUfo" scale="0.25 0.25 0.25" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
-      collider="layer:ufo; shape:sphere;radius:0.013"
-      collider__sensor="layer:ufosensor;collidesWith:asteroid,ufosensor;shape:sphere;radius:0.150; ignoreDuplicates:true; eventTarget:#Game">
+      mi__collider="|defaults:|layer:ufo;radius:0.013"
+      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:0.075" trigger-target>
     </a-mixin>
 
     <image id="sky" src="./assets/sky/env.png"></image>
@@ -102,12 +102,12 @@
     <a-image src="#micosmo" position="-0.055 0.760 0" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
 
     <!-- Following is used to determine the size of colliders -->
-    <!--a-entity position="-1.000 1.000 -0.381">
+    <!--a-entity position="-1.100 0.800 0.00">
       <a-entity position="0.000 0.000 0.000">
-        <a-entity scale="1 1 1" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+        <a-entity scale="1 1 1" gltf-blender-part="part:player;src:#models-gltf;findMesh:true"
           material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002">
         </a-entity>
-        <a-entity position=" 0.000 0.000 0.000" geometry="primitive:sphere; radius:0.013"
+        <a-entity position=" 0.000 0.000 0.000" geometry="primitive:sphere; radius:0.015"
           material="shader:flat;color:white">
         </a-entity>
       </a-entity>
@@ -188,7 +188,8 @@
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
           outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 5"
           ctrlmap="thrust:x, thrust:a, thrust:pad, leftTrigger:ltrig, rightTrigger:rtrig"
-          keymap="|MotionKeys:shiprotate| thrust:+, trigger:Space, trigger:Enter ">
+          keymap="|MotionKeys:shiprotate| thrust:+"
+          mi__collider="|defaults:|layer:spaceship;collidesWith:ufo,asteroid;radius:0.015;policy:init">
           <a-entity id="Thruster" position="0.001 0 0" scale="1.5 1.5 1.5"
             gltf-blender-part="part:flame;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
             outline="color:#81FFFC;thickness:-0.002" visible="false"></a-entity>
@@ -218,8 +219,8 @@
       <a-entity id="cursor" cursor="fuseTimeout: 500; rayOrigin: mouse" position="0 0 -0.1"
         raycaster="objects: .cursor-none; interval: 0; enabled: false"
         geometry="primitive: ring; radiusInner: 0.001; radiusOuter: 0.002" material="color: red; shader: flat"
-        headless-controller paused="true" keymap="|MotionKeys:recenter| Recenter:r, Trigger:Space, Trigger:Enter"
-        visible="false">
+        headless-controller="triggerEventTarget:#SpaceShip" paused="true"
+        keymap="|MotionKeys:recenter| Recenter:r, Trigger:Space, Trigger:Enter" visible="false">
       </a-entity>
     </a-entity>
     <a-entity id="leftHand" controller="hand:left;touch:pointer" ctrlmap="recenter:leftgrip" visible="false">

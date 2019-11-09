@@ -139,7 +139,7 @@ aframe.registerComponent('gamestate', {
     this.GameBoard.object3D.visible = true;
     this.Env1.object3D.visible = true;
     startElement(this.Game);
-    this.compHeadless.startRaycaster('.cursor-game');
+    this.compHeadless.startRaycaster('.cursor-game, [trigger-target]', 0, 1000);
   },
   exitPlaying() {
     stopElement(this.Game);

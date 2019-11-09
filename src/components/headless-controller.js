@@ -17,6 +17,7 @@ aframe.registerComponent("headless-controller", {
     rayInterval: { type: 'int', default: 0 },
     triggerCacheTimeout: { type: 'number', default: 0.0 },
     triggers: { type: 'array', default: [] },
+    triggerEventTarget: { type: "selector" },
     recenterMove: { default: 2.00 }, // m/s
     recenterRotate: { default: 180 } // In degrees / s
   },
@@ -189,18 +190,18 @@ function triggerDown(hlc, key) {
 }
 
 function emitTriggerDown(hlc, el, key) {
-  const o = requestObject();
-  o.triggerEl = el; o.key = key;
-  (hlc.triggerEl = el).emit('triggerDown', o, false);
-  returnObject(o);
+  hlc.triggerDetail = requestObject();
+  hlc.triggerDetail.triggerEl = hlc.triggerEl = el; hlc.triggerDetail.key = key;
+  (hlc.data.triggerEventTarget || el).emit('triggerDown', hlc.triggerDetail, false);
   hlc.triggerTimer.start();
 }
 
 method(triggerUp);
 function triggerUp() {
   if (this.triggerEl)
-    this.triggerEl.emit('triggerUp', undefined, false);
-  this.triggerEl = undefined;
+    (this.data.triggerEventTarget || this.triggerEl).emit('triggerUp', this.triggerDetail, false);
+  returnObject(this.triggerDetail);
+  this.triggerDetail = this.triggerEl = undefined;
 }
 
 method(fTriggerCacheTimeout);
@@ -217,3 +218,6 @@ function headlessReady(hlc) {
   }
   console.info(`system:headless-controller:headlessReady: No HMD device. Headless controller ready`);
 }
+
+// Dummy component to assign to mixins for mapping to the raycaster
+aframe.registerComponent("trigger-target", {})
