@@ -39,6 +39,7 @@ aframe.registerComponent("ufos", {
 
     this.v1 = new THREE.Vector3();
     this.v2 = new THREE.Vector3();
+    this.v3 = new THREE.Vector3();
   },
   update(oldData) {
   },
@@ -79,29 +80,38 @@ aframe.registerComponent("ufos", {
   },
 
   traveller(tm, dt) {
-    this.ufos.forEach(el => {
-      if (el.__game.obstacles.length > 0) {
+    dt /= 1000; // Need delta in seconds
+    this.ufos.forEach(ufo => {
+      if (ufo.__game.obstacles.length > 0) {
         // Potential function applied to normalised velocity vector and obstacles in sensor range.
+        // Use projected change in distance to influence relevance of obstacle direction change and angular speed to apply
+        //        let shortestDist = Number.MAX_VALUE;
         this.v1.set(0, 0, 0);
-        el.__game.obstacles.forEach(obstacle => {
-          this.v2.copy(el.object3D.position).sub(obstacle.object3D.position);
-          const len = this.v2.length() - obstacle.components.collider.data.radius;
-          this.v1.add(this.v2.multiplyScalar(1 / (4 * len * len))).normalize();
+        ufo.__game.obstacles.forEach(obstacle => {
+          this.v2.copy(ufo.object3D.position).addScaledVector(ufo.__game.velocity, dt);
+          this.v3.copy(obstacle.object3D.position).addScaledVector(obstacle.__game.velocity, dt);
+          const projDist = this.v2.sub(this.v3).length() - obstacle.__game.radius - ufo.__game.radius; // Projected distance between inner colliders
+          this.v2.copy(ufo.object3D.position).sub(obstacle.object3D.position);
+          const curDist = this.v2.length() - obstacle.__game.radius - ufo.__game.radius; // Current distance between inner colliders
+          //          shortestDist = Math.min(shortestDist, curDist);
+          this.v1.add(this.v2.normalize().multiplyScalar((curDist / projDist) / (curDist * curDist))).normalize();
         });
-        this.v2.copy(el.__game.velocity).normalize().add(this.v1).normalize();
-        el.__game.velocity.copy(this.v2).setLength(el.__game.speed);
+        //        this.v2.copy(ufo.__game.velocity).normalize().addScaledVector(this.v1, dt / (shortestDist / ufo.__game.speed)).normalize();
+        // this.v2.copy(ufo.__game.velocity).normalize().addScaledVector(this.v1, dt / 0.750).normalize();
+        this.v2.copy(ufo.__game.velocity).normalize().add(this.v1).normalize();
+        ufo.__game.velocity.copy(this.v2).setLength(ufo.__game.speed);
       }
 
-      const vPos = el.object3D.position;
-      vPos.addScaledVector(el.__game.velocity, dt / 1000);
-      el.object3D.rotateOnAxis(el.__game.rotationAxis, el.__game.angularSpeed * dt / 1000);
+      const vPos = ufo.object3D.position;
+      vPos.addScaledVector(ufo.__game.velocity, dt);
+      ufo.object3D.rotateOnAxis(ufo.__game.rotationAxis, ufo.__game.angularSpeed * dt);
       if (vPos.length() >= this.playspaceRadius) {
         // Loop back in from the other side but randomise the heading
         vPos.negate();
         randomiseVector(this.v1, this.playspaceRadius / 1.5);
         this.PlaySpace.object3D.getWorldPosition(this.v2).add(this.v1);
-        el.object3D.lookAt(this.v2); // Random direction but facing inwards
-        el.__game.velocity.copy(this.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
+        ufo.object3D.lookAt(this.v2); // Random direction but facing inwards
+        ufo.__game.velocity.copy(this.zAxis).applyQuaternion(ufo.object3D.quaternion).setLength(ufo.__game.speed);
       }
     })
     return 'more';
@@ -120,10 +130,20 @@ aframe.registerComponent("ufos", {
       this.exhaustedPromise = undefined;
     }
   },
-  startAvoidObstacle(el1, el2) {
+  startAvoidUfo(el1, el2) {
+    // Duplicate events are thrown away
+    el1.__game.obstacles.push(el2);
+    el2.__game.obstacles.push(el1);
+  },
+  endAvoidUfo(el1, el2) {
+    // Duplicate events are thrown away
+    removeValue(el1.__game.obstacles, el2);
+    removeValue(el2.__game.obstacles, el1);
+  },
+  startAvoidAsteroid(el1, el2) {
     el1.__game.obstacles.push(el2);
   },
-  endAvoidObstacle(el1, el2) {
+  endAvoidAsteroid(el1, el2) {
     removeValue(el1.__game.obstacles, el2);
   }
 });
@@ -131,7 +151,7 @@ aframe.registerComponent("ufos", {
 function startUfo(self, cfg, pool) {
   self.travelProcess.restart();
   const el = self.ufoPools[pool].requestEntity();
-  randomiseVector(el.object3D.position, self.playspaceRadius - 0.1); // Random start position
+  randomiseVector(el.object3D.position, self.playspaceRadius - 0.01); // Random start position
   randomiseVector(self.v1, self.playspaceRadius / 2);
   self.PlaySpace.object3D.getWorldPosition(self.v2).add(self.v1);
   el.object3D.lookAt(self.v2); // Random direction but facing inwards
@@ -145,9 +165,11 @@ function initUfo(self, el, cfg, pool) {
   if (!el.__game) el.__game = {
     velocity: new THREE.Vector3(),
     rotationAxis: new THREE.Vector3(),
+    obstacles: []
   };
   el.__game.id = ++IdUfo;
   el.__game.speed = cfg.speed * RefSpeed;
+  el.__game.radius = el.components.collider.data.radius;
   el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
   el.__game.hits = cfg.hits;
   el.__game.accuracy = cfg.accuracy;
@@ -155,7 +177,7 @@ function initUfo(self, el, cfg, pool) {
   el.__game.angularSpeed = RotationSpeed;
   el.__game.pool = pool;
   el.__game.mass = Mass[pool];
-  el.__game.obstacles = [];
+  el.__game.obstacles.length = 0;
   return el;
 }
 

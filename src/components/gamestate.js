@@ -39,6 +39,32 @@ aframe.registerComponent('gamestate', {
       this.compHeadless = scene.querySelector('[headless-controller]').components['headless-controller'];
     });
     this.pauseCount = 0;
+
+    /*
+    const axis = new THREE.Vector3(0, 1, 1);
+    const xAxis = new THREE.Vector3(1, 0, 0);
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    const zAxis = new THREE.Vector3(0, 0, 1);
+    const degrees = 45;
+    const quat = new THREE.Quaternion().setFromAxisAngle(axis, THREE.Math.degToRad(degrees));
+    const xQuat = new THREE.Quaternion().setFromAxisAngle(xAxis, THREE.Math.degToRad(degrees));
+    const yQuat = new THREE.Quaternion().setFromAxisAngle(yAxis, THREE.Math.degToRad(degrees));
+    const zQuat = new THREE.Quaternion().setFromAxisAngle(zAxis, THREE.Math.degToRad(degrees));
+
+    const v1 = new THREE.Vector3(1, 2, 3);
+    const v2 = new THREE.Vector3(-1, -2, -3);
+    const dir = new THREE.Vector3().copy(v1).sub(v2);
+    const len = dir.length();
+    let angle = v1.angleTo(v2);
+    v2.copy(v1).add(dir.negate());
+    console.log(JSON.stringify(v1), JSON.stringify(v2), JSON.stringify(dir), THREE.Math.radToDeg(angle), len);
+    dir.normalize();
+    const quat = new THREE.Quaternion().setFromAxisAngle(dir, angle / 2);
+    console.log(JSON.stringify(v1), JSON.stringify(v2), JSON.stringify(dir), THREE.Math.radToDeg(angle), len);
+    v2.copy(v1).applyQuaternion(quat);
+    angle = v1.angleTo(v2);
+    console.log(JSON.stringify(v1), JSON.stringify(v2), THREE.Math.radToDeg(angle));
+    */
   },
 
   update(oldData) {

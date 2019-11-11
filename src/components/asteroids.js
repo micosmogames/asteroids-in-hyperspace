@@ -59,7 +59,7 @@ aframe.registerComponent("asteroids", {
     const lcfg = cfg.large;
     for (let i = 0; i < lcfg.count; i++) {
       const el = this.asteroidPools.large.requestEntity();
-      randomiseVector(el.object3D.position, this.playspaceRadius - 0.1); // Random start position
+      randomiseVector(el.object3D.position, this.playspaceRadius - 0.01); // Random start position
       randomiseVector(this.v1, this.playspaceRadius / 2);
       this.PlaySpace.object3D.getWorldPosition(this.v2).add(this.v1);
       el.object3D.lookAt(this.v2); // Random direction but facing inwards
@@ -130,6 +130,7 @@ let IdAsteroid = 0;
 function initAsteroid(self, el, cfg, pool) {
   if (!el.__game) el.__game = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
   el.__game.id = ++IdAsteroid;
+  el.__game.radius = el.components.collider.data.radius;
   el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(cfg.speed * RefSpeed);
   el.__game.hits = cfg.hits;
   randomiseVector(el.__game.rotationAxis, 1).normalize();

@@ -86,10 +86,10 @@ aframe.registerComponent("game", {
     this.compAsteroids.collision(el1, el2);
   },
   collisionstart_ufosensor_asteroid(el1, el2) {
-    this.compUfos.startAvoidObstacle(el1, el2);
+    this.compUfos.startAvoidAsteroid(el1, el2);
   },
   collisionstart_ufosensor_ufosensor(el1, el2) {
-    this.compUfos.startAvoidObstacle(el1, el2);
+    this.compUfos.startAvoidUfo(el1, el2);
   },
   collisionstart_spaceship_ufo(el1, el2) {
     this.compSpaceShip.collision(el1, el2);
@@ -108,10 +108,10 @@ aframe.registerComponent("game", {
   collisionend_asteroid_asteroid(el1, el2) {
   },
   collisionend_ufosensor_asteroid(el1, el2) {
-    this.compUfos.endAvoidObstacle(el1, el2);
+    this.compUfos.endAvoidAsteroid(el1, el2);
   },
   collisionend_ufosensor_ufosensor(el1, el2) {
-    this.compUfos.endAvoidObstacle(el1, el2);
+    this.compUfos.endAvoidUfo(el1, el2);
   },
   collisionend_spaceship_ufo(el1, el2) {
   },
@@ -121,8 +121,8 @@ aframe.registerComponent("game", {
 
 var Levels = {
   1: {
-    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 2 }, small: {}, tiny: {} },
-    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: {}, small: { count: 0 } }
+    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 10 }, small: {}, tiny: {} },
+    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: { count: 5, timing: 1 }, small: { count: 5, timing: 1 } }
   },
   2: {
     asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: {}, small: {}, tiny: {} },
