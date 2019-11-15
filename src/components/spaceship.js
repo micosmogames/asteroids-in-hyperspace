@@ -151,8 +151,6 @@ aframe.registerComponent("spaceship", {
     this.qTouch.copy(this.el.object3D.quaternion);
     this.el.object3D.quaternion.copy(this.quat);
     this.el.object3D.quaternion.rotateTowards(this.qTouch, TouchAngularRotation * dt / 1000);
-    const speed = this.velocity.length();
-    this.velocity.copy(this.zAxis).applyQuaternion(this.el.object3D.quaternion).setLength(speed);
     return 'more';
   },
 
@@ -236,8 +234,9 @@ function destroyGattlerRound(ss, el, idx = ss.gattlerRounds.indexOf(el)) {
 }
 
 function fireGattlerRound(ss) {
-  ss.gattlerRoundsProcess.restart();
   const el = ss.gattlerRoundPool.requestEntity();
+  if (el === undefined) return; // Gattler pool is empty
+  ss.gattlerRoundsProcess.restart();
   ss.gattlerRounds.push(el);
   ss.axis.copy(ss.yAxis).applyQuaternion(ss.el.object3D.quaternion);
   ss.quat.setFromAxisAngle(ss.axis, THREE.Math.degToRad(180));

@@ -19,6 +19,7 @@ aframe.registerComponent('gamestate', {
     if ((scene.components.gamestate ? 1 : 0) + scene.querySelectorAll('[gamestate]').length > 1)
       throw new Error('micosmo:component:gamestate:init: Single instance only');
     this.initialised = false;
+    this.inVRMode = false;
     noKeyboardVisibilityChecks(); // Key listeners only inactive if related component is paused.
     this.recenterContext = { action: 'recenter' };
     this.SplashScreen = scene.querySelector('#SplashScreen');
@@ -30,13 +31,15 @@ aframe.registerComponent('gamestate', {
     this.Game = scene.querySelector('#Game');
     this.Env1 = scene.querySelector('#env-1');
     this.Player = scene.querySelector('#player');
+    this.SpaceShip = scene.querySelector('#SpaceShip');
+    this.Hlc = scene.querySelector('[headless-controller]');
     this.Cursor = scene.querySelector('#cursor');
     this.WasdControls = scene.querySelector('[wasd-controls]');
     this.wasdActive = false;
     this.el.sceneEl.systems.keyboard.addListeners(this);
     this.el.sceneEl.systems.controller.addListeners(this);
     onLoadedDo(() => {
-      this.compHeadless = scene.querySelector('[headless-controller]').components['headless-controller'];
+      this.compHeadless = this.Hlc.components['headless-controller'];
     });
     this.pauseCount = 0;
 
@@ -77,6 +80,15 @@ aframe.registerComponent('gamestate', {
       this.el.sceneEl.setAttribute('states', { list: this.data.states, event: 'gamestatechanged' });
     this.compStates = this.el.sceneEl.components.states;
   },
+
+  'enter-vr': bindEvent({ target: 'a-scene' }, function (evt) {
+    this.inVRMode = true;
+    onLoadedDo(() => { this.compHeadless.toggleCursor(false) });
+  }),
+  'exit-vr': bindEvent({ target: 'a-scene' }, function (evt) {
+    this.inVRMode = false;
+    this.compHeadless.toggleCursor(true);
+  }),
 
   startupComplete: bindEvent({ target: 'a-scene' }, function () {
     this.initialised = true;
@@ -166,12 +178,14 @@ aframe.registerComponent('gamestate', {
     this.Env1.object3D.visible = true;
     startElement(this.Game);
     this.compHeadless.startRaycaster('.cursor-game, [trigger-target]', 0, 1000);
+    this.Hlc.setAttribute('headless-controller', 'triggerEventTarget', this.SpaceShip);
   },
   exitPlaying() {
     stopElement(this.Game);
     this.GameBoard.object3D.visible = false;
     this.Env1.object3D.visible = false;
     this.compHeadless.stopRaycaster();
+    this.Hlc.setAttribute('headless-controller', 'triggerEventTarget', null);
   },
   recenterPlaying() { recenterElement(this, this.Game) },
 
@@ -221,7 +235,7 @@ aframe.registerComponent('gamestate', {
     console.log('TestKeys', id, kc, evt);
     return false;
   },
-  Pause_down() { // Controller input
+  Pause_down(evt) { // Controller input
     this.compStates.call('Pause');
     return true;
   },
@@ -230,7 +244,7 @@ aframe.registerComponent('gamestate', {
     return true;
   },
   keydown_Cursor() {
-    this.Cursor.components['headless-controller'].toggleCursor();
+    this.compHeadless.toggleCursor();
     return true;
   },
   keydown_VRToggle() {

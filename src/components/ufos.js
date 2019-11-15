@@ -8,6 +8,10 @@ import * as ticker from "@micosmo/ticker/aframe-ticker";
 const Pools = ['large', 'small'];
 const RefSpeed = 0.60; // m/s
 const RotationSpeed = THREE.Math.degToRad(90); // Degrees / s
+const DirectionalSpeed = THREE.Math.degToRad(180) / RefSpeed * 10; // Degrees / s
+const MinAngle = THREE.Math.degToRad(2);
+const Angle90 = Math.PI / 2;
+const Angle45 = Math.PI / 4;
 const Mass = { large: 2, small: 1 };
 
 aframe.registerComponent("ufos", {
@@ -82,24 +86,29 @@ aframe.registerComponent("ufos", {
   traveller(tm, dt) {
     dt /= 1000; // Need delta in seconds
     this.ufos.forEach(ufo => {
-      if (ufo.__game.obstacles.length > 0) {
-        // Potential function applied to normalised velocity vector and obstacles in sensor range.
-        // Use projected change in distance to influence relevance of obstacle direction change and angular speed to apply
-        //        let shortestDist = Number.MAX_VALUE;
-        this.v1.set(0, 0, 0);
-        ufo.__game.obstacles.forEach(obstacle => {
-          this.v2.copy(ufo.object3D.position).addScaledVector(ufo.__game.velocity, dt);
-          this.v3.copy(obstacle.object3D.position).addScaledVector(obstacle.__game.velocity, dt);
-          const projDist = this.v2.sub(this.v3).length() - obstacle.__game.radius - ufo.__game.radius; // Projected distance between inner colliders
-          this.v2.copy(ufo.object3D.position).sub(obstacle.object3D.position);
-          const curDist = this.v2.length() - obstacle.__game.radius - ufo.__game.radius; // Current distance between inner colliders
-          //          shortestDist = Math.min(shortestDist, curDist);
-          this.v1.add(this.v2.normalize().multiplyScalar((curDist / projDist) / (curDist * curDist))).normalize();
-        });
-        //        this.v2.copy(ufo.__game.velocity).normalize().addScaledVector(this.v1, dt / (shortestDist / ufo.__game.speed)).normalize();
-        // this.v2.copy(ufo.__game.velocity).normalize().addScaledVector(this.v1, dt / 0.750).normalize();
-        this.v2.copy(ufo.__game.velocity).normalize().add(this.v1).normalize();
-        ufo.__game.velocity.copy(this.v2).setLength(ufo.__game.speed);
+      // Potential function applied to normalised velocity vector and obstacles in sensor range.
+      // Use projected change in distance to influence relevance of obstacle direction change and angular speed to apply
+      //        let shortestDist = Number.MAX_VALUE;
+      this.v1.set(0, 0, 0);
+      ufo.__game.obstacles.forEach(obstacle => {
+        this.v2.copy(ufo.object3D.position).addScaledVector(ufo.__game.velocity, dt);
+        this.v3.copy(obstacle.object3D.position).addScaledVector(obstacle.__game.velocity, dt);
+        const projDist = this.v2.sub(this.v3).length() - obstacle.__game.radius - ufo.__game.radius; // Projected distance between inner colliders
+        this.v2.copy(ufo.object3D.position).sub(obstacle.object3D.position);
+        const curDist = this.v2.length() - obstacle.__game.radius - ufo.__game.radius; // Current distance between inner colliders
+        //          shortestDist = Math.min(shortestDist, curDist);
+        this.v1.add(this.v2.multiplyScalar((curDist / projDist) / (curDist * curDist)));
+      });
+      //        this.v2.copy(ufo.__game.velocity).normalize().addScaledVector(this.v1, dt / (shortestDist / ufo.__game.speed)).normalize();
+      // this.v2.copy(ufo.__game.velocity).normalize().addScaledVector(this.v1, dt / 0.750).normalize();
+      this.v2.copy(ufo.__game.targetVector).sub(ufo.object3D.position);
+      this.v3.copy(this.v2).add(this.v1);
+      let angle = ufo.__game.velocity.angleTo(this.v3);
+      if (angle > MinAngle) {
+        if (angle > Angle90) angle = Angle45;
+        const msTime = angle / ufo.__game.directionalSpeed * 1000;
+//        console.log(msTime, THREE.Math.radToDeg(angle), ufo.__game.directionalSpeed * 360 / (Math.PI * 2));
+        ufo.__game.velocity.copy(this.v2).addScaledVector(this.v1, dt / msTime).setLength(ufo.__game.speed);
       }
 
       const vPos = ufo.object3D.position;
@@ -111,7 +120,9 @@ aframe.registerComponent("ufos", {
         randomiseVector(this.v1, this.playspaceRadius / 1.5);
         this.PlaySpace.object3D.getWorldPosition(this.v2).add(this.v1);
         ufo.object3D.lookAt(this.v2); // Random direction but facing inwards
-        ufo.__game.velocity.copy(this.zAxis).applyQuaternion(ufo.object3D.quaternion).setLength(ufo.__game.speed);
+        this.v3.copy(this.zAxis).applyQuaternion(ufo.object3D.quaternion).setLength(this.playspaceRadius * 2);
+        ufo.__game.targetVector.copy(ufo.object3D.position).add(this.v3);
+        ufo.__game.velocity.copy(this.v3).setLength(ufo.__game.speed);
       }
     })
     return 'more';
@@ -149,8 +160,9 @@ aframe.registerComponent("ufos", {
 });
 
 function startUfo(self, cfg, pool) {
-  self.travelProcess.restart();
   const el = self.ufoPools[pool].requestEntity();
+  if (el === undefined) return; // Ufo pool is empty.
+  self.travelProcess.restart();
   randomiseVector(el.object3D.position, self.playspaceRadius - 0.01); // Random start position
   randomiseVector(self.v1, self.playspaceRadius / 2);
   self.PlaySpace.object3D.getWorldPosition(self.v2).add(self.v1);
@@ -165,16 +177,20 @@ function initUfo(self, el, cfg, pool) {
   if (!el.__game) el.__game = {
     velocity: new THREE.Vector3(),
     rotationAxis: new THREE.Vector3(),
+    targetVector: new THREE.Vector3(),
     obstacles: []
   };
   el.__game.id = ++IdUfo;
   el.__game.speed = cfg.speed * RefSpeed;
   el.__game.radius = el.components.collider.data.radius;
-  el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
+  self.v3.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(self.playspaceRadius * 2);
+  el.__game.targetVector.copy(el.object3D.position).add(self.v3);
+  el.__game.velocity.copy(self.v3).setLength(el.__game.speed);
   el.__game.hits = cfg.hits;
   el.__game.accuracy = cfg.accuracy;
   el.__game.rotationAxis = self.yAxis;
   el.__game.angularSpeed = RotationSpeed;
+  el.__game.directionalSpeed = DirectionalSpeed * el.__game.speed;
   el.__game.pool = pool;
   el.__game.mass = Mass[pool];
   el.__game.obstacles.length = 0;

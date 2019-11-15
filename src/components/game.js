@@ -121,8 +121,8 @@ aframe.registerComponent("game", {
 
 var Levels = {
   1: {
-    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 10 }, small: {}, tiny: {} },
-    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: { count: 5, timing: 1 }, small: { count: 5, timing: 1 } }
+    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 15 }, small: {}, tiny: {} },
+    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: { count: 2, timing: 1 }, small: { count: 0, timing: 1 } }
   },
   2: {
     asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: {}, small: {}, tiny: {} },

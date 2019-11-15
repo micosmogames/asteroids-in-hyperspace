@@ -116,6 +116,7 @@ function splitAsteroid(self, targetEl) {
   const cfg = self.cfg[pool];
   for (let i = cfg.count; i > 0; i--) {
     const el = self.asteroidPools[pool].requestEntity();
+    if (el === undefined) return; // Asteroid pool is empty
     el.object3D.position.copy(targetEl.object3D.position);
     randomiseVector(self.v1, self.playspaceRadius - 0.1); // Random direction
     self.PlaySpace.object3D.getWorldPosition(self.v2).add(self.v1);

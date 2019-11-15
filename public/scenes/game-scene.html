@@ -1,8 +1,7 @@
-<a-scene id="scene" fog="type:exponential; color:#040f19; density:0.17" gamma="true">
+<a-scene id="scene" gamma="true">
 
-  <a-entity id="GameState" keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,wasd:F9,Test:-any"
-    ctrlmap="Pause:stick, Pause:menu"
-    gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Recenter">
+  <a-entity id="GameState"  gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Recenter"
+    keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,wasd:F9,Test:-any" ctrlmap="Pause:stick, Pause:pad">
   </a-entity>
 
   <a-entity id="DataGroups">
@@ -54,13 +53,13 @@
     <a-mixin id="Ufo" scale="0.50 0.50 0.50" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
       mi__collider="|defaults:|layer:ufo;radius:0.013"
-      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:0.06" trigger-target>
+      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:1.200" trigger-target>
     </a-mixin>
 
     <a-mixin id="SmallUfo" scale="0.25 0.25 0.25" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
       mi__collider="|defaults:|layer:ufo;radius:0.013"
-      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:0.120" trigger-target>
+      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:1.200" trigger-target>
     </a-mixin>
 
     <image id="sky" src="./assets/sky/env.png"></image>
@@ -93,8 +92,8 @@
       <a-entity class="fillLight" position="0.485 1.2 -0.654" light="intensity:0.5;target:#GameBoard;color:#2999ff">
       </a-entity>
 
-      <a-entity position="0 0.1 0" gltf-blender-part="part:environment-1;src:#env-gltf;findMesh:false"
-        shadeless-recursive></a-entity>
+      <!-- <a-entity position="0 0.1 0" gltf-blender-part="part:environment-1;src:#env-gltf;findMesh:false"
+        shadeless-recursive></a-entity> -->
     </a-entity>
   </a-entity>
 
@@ -175,20 +174,19 @@
     </a-entity>
 
     <a-entity id="Game" position="0 0.330 0.100" ticker game="level:1" visible="false">
-      <a-entity position="0 0 0">
+      <!-- <a-entity position="0 0 0">
         <a-entity shadow="receive:true;cast:false" gltf-blender-part="part:receive-shadows;src:#env-gltf;findMesh:false"
           spherical-envmap="image:#sky;intensity:.5"></a-entity>
-        <!--<a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
-          shadeless-recursive></a-entity>-->
-      </a-entity>
+        <a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
+          shadeless-recursive></a-entity>
+      </a-entity> -->
       <a-entity id="PlaySpace" geometry="primitive:sphere; radius:0.30;"
         material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.25" playspace
-        ctrlmap="rotate:stick, rotate:pad" keyMap="|MotionKeys:rotate|" position="0 1.5 0">
+        ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.5 0">
         <a-entity id="SpaceShip" position="0 0 0" scale="0.30 0.30 0.30"
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
           outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 5"
-          ctrlmap="thrust:x, thrust:a, thrust:pad, leftTrigger:ltrig, rightTrigger:rtrig"
-          keymap="|MotionKeys:shiprotate| thrust:+"
+          ctrlmap="thrust:ltrig, rightTrigger:rtrig" keymap="|MotionKeys:shiprotate| thrust:+"
           mi__collider="|defaults:|layer:spaceship;collidesWith:ufo,asteroid;radius:0.015;policy:init">
           <a-entity id="Thruster" position="0.001 0 0" scale="1.5 1.5 1.5"
             gltf-blender-part="part:flame;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
@@ -214,12 +212,12 @@
   <!-- wasd-controls="adAxis:z;wsAxis:y" have taken this out as now support keyboard recentering 
   recenter="offset: 0, 1.1, -0.2" -->
   <a-entity id="player" position="0 0 1.000" recenter="offset: 0 1.50 0.50"
-    ctrlmap="xy:stick,xy:pad,zin:b,zin:y,zin:leftpad,zout:a,zout:x,zout:rightpad" visible="false">
+    ctrlmap="xy:rightstick,xy:rightpad,zin:b,zin:y,zout:a,zout:x,zinout:leftpad,zinout:leftstick, reset:stick, reset:pad" visible="false">
     <a-entity id="player-camera" position="0 1.4 0.0" camera="active:true" look-controls wasd-controls="enabled:false">
       <a-entity id="cursor" cursor="fuseTimeout: 500; rayOrigin: mouse" position="0 0 -0.1"
         raycaster="objects: .cursor-none; interval: 0; enabled: false"
         geometry="primitive: ring; radiusInner: 0.001; radiusOuter: 0.002" material="color: red; shader: flat"
-        headless-controller="triggerEventTarget:#SpaceShip" paused="true"
+        headless-controller paused="true"
         keymap="|MotionKeys:recenter| Recenter:r, Trigger:Space, Trigger:Enter" visible="false">
       </a-entity>
     </a-entity>

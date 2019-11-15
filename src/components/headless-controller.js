@@ -17,7 +17,7 @@ aframe.registerComponent("headless-controller", {
     rayInterval: { type: 'int', default: 0 },
     triggerCacheTimeout: { type: 'number', default: 0.0 },
     triggers: { type: 'array', default: [] },
-    triggerEventTarget: { type: "selector" },
+    triggerEventTarget: { type: "selector" }, // Target will need to filter the events
     recenterMove: { default: 2.00 }, // m/s
     recenterRotate: { default: 180 } // In degrees / s
   },
@@ -63,14 +63,16 @@ aframe.registerComponent("headless-controller", {
   hasHMD() {
     return this.flHMDDetected;
   },
-  toggleCursor() {
+  toggleCursor(state) {
     if (this.Cursor.components.raycaster.data.enabled) {
-      this.Cursor.object3D.visible = false;
-      this.saveCursorRecenterPosition.copy(this.Recenter.object3D.position);
-      this.Recenter.object3D.position.copy(this.saveRecenterPosition);
-      this.Cursor.setAttribute('raycaster', 'enabled', 'false');
-      this.Cursor.setAttribute('paused', 'true');
-    } else {
+      if (state !== true) {
+        this.Cursor.object3D.visible = false;
+        this.saveCursorRecenterPosition.copy(this.Recenter.object3D.position);
+        this.Recenter.object3D.position.copy(this.saveRecenterPosition);
+        this.Cursor.setAttribute('raycaster', 'enabled', 'false');
+        this.Cursor.setAttribute('paused', 'true');
+      }
+    } else if (state !== false) {
       this.Cursor.object3D.visible = true;
       this.saveRecenterPosition.copy(this.Recenter.object3D.position);
       if (this.saveCursorRecenterPosition)
