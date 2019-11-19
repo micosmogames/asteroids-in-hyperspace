@@ -74,14 +74,17 @@ aframe.registerComponent("asteroids", {
       const vPos = el.object3D.position;
       vPos.addScaledVector(el.__game.velocity, dt / 1000);
       el.object3D.rotateOnAxis(el.__game.rotationAxis, el.__game.angularSpeed * dt / 1000);
-      if (vPos.length() >= this.playspaceRadius) {
-        // Loop back in from the other side but randomise the heading
-        vPos.negate();
-        randomiseVector(this.v1, this.playspaceRadius / 1.5);
+      if (!el.object3D.visible) {
+        if (vPos.length() < this.playspaceRadius - el.__game.radius / 4)
+          el.object3D.visible = true; // Re-entering playspace
+      } else if (vPos.length() >= this.playspaceRadius) {
+        el.object3D.visible = false; // Leaving the playspace
+        // Randomly loop back in from the other side but randomise the heading.
+        vPos.setLength(this.playspaceRadius * (1 + 0.75 * Math.random())).negate();
+        randomiseVector(this.v1, this.playspaceRadius * 0.25);
         this.PlaySpace.object3D.getWorldPosition(this.v2).add(this.v1);
         el.object3D.lookAt(this.v2); // Random direction but facing inwards
-        const speed = el.__game.velocity.length();
-        el.__game.velocity.copy(this.zAxis).applyQuaternion(el.object3D.quaternion).setLength(speed);
+        el.__game.velocity.copy(this.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
       }
     })
     return 'more';
@@ -132,7 +135,8 @@ function initAsteroid(self, el, cfg, pool) {
   if (!el.__game) el.__game = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
   el.__game.id = ++IdAsteroid;
   el.__game.radius = el.components.collider.data.radius;
-  el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(cfg.speed * RefSpeed);
+  el.__game.speed = cfg.speed * RefSpeed;
+  el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
   el.__game.hits = cfg.hits;
   randomiseVector(el.__game.rotationAxis, 1).normalize();
   el.__game.angularSpeed = cfg.rotation * RefAngularSpeed;

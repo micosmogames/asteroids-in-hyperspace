@@ -1,5 +1,6 @@
 import aframe from 'aframe';
 import { bindEvent } from "aframe-event-decorators";
+import { methodNameBuilder } from '@micosmo/core/method';
 import { createSchemaPersistentObject } from '@micosmo/aframe/lib/utils';
 import { LazyPromise } from '@micosmo/async/promise';
 import { onLoadedDo } from '@micosmo/aframe/startup';
@@ -18,6 +19,8 @@ aframe.registerComponent("game", {
     this.Asteroids = sceneEl.querySelector('#Asteroids');
     this.Ufos = sceneEl.querySelector('#Ufos');
     this.gamePromises = [];
+    this.fCollisionStart = methodNameBuilder('collisionstart_%1_%2', /%1/, /%2/);
+    this.fCollisionEnd = methodNameBuilder('collisionend_%1_%2', /%1/, /%2/);
 
     onLoadedDo(() => {
       this.compAsteroids = this.Asteroids.components.asteroids;
@@ -72,7 +75,7 @@ aframe.registerComponent("game", {
   },
 
   collisionstart: bindEvent(function (evt) {
-    this[`collisionstart_${evt.detail.layer1}_${evt.detail.layer2}`](evt.detail.el1, evt.detail.el2);
+    this[this.fCollisionStart(evt.detail.layer1, evt.detail.layer2)](evt.detail.el1, evt.detail.el2);
   }),
   collisionstart_gattler_asteroid(elRound, elAsteroid) {
     this.compSpaceShip.gattlerHit(elRound, elAsteroid);
@@ -99,7 +102,7 @@ aframe.registerComponent("game", {
   },
 
   collisionend: bindEvent(function (evt) {
-    this[`collisionend_${evt.detail.layer1}_${evt.detail.layer2}`](evt.detail.el1, evt.detail.el2);
+    this[this.fCollisionEnd(evt.detail.layer1, evt.detail.layer2)](evt.detail.el1, evt.detail.el2);
   }),
   collisionend_gattler_asteroid(elRound, elAsteroid) {
   },
@@ -121,8 +124,8 @@ aframe.registerComponent("game", {
 
 var Levels = {
   1: {
-    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 15 }, small: {}, tiny: {} },
-    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: { count: 2, timing: 1 }, small: { count: 0, timing: 1 } }
+    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 20 }, small: {}, tiny: {} },
+    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: { count: 10, timing: 1 }, small: { count: 0, timing: 1 } }
   },
   2: {
     asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: {}, small: {}, tiny: {} },

@@ -34,6 +34,10 @@
       material="shader:flat;color:white" mi__collider="|defaults:|layer:gattler;collidesWith:asteroid,ufo;radius:0.010">
     </a-mixin>
 
+    <a-mixin id="ShooterRound" scale="0.1125 0.1125 0.30" gltf-blender-part="part:flame;src:#models-gltf;findMesh:true"
+      material="shader:flat;color:white" mi__collider="|defaults:|layer:shooter;collidesWith:asteroid,spaceship;radius:0.010">
+    </a-mixin>
+
     <a-mixin id="LargeAsteroid" scale="0.30 0.30 0.30" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"
       mi__collider="|defaults:|layer:asteroid;collidesWith:asteroid;radius:0.045" trigger-target>
@@ -53,13 +57,13 @@
     <a-mixin id="Ufo" scale="0.50 0.50 0.50" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
       mi__collider="|defaults:|layer:ufo;radius:0.013"
-      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:1.200" trigger-target>
+      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:0.300" trigger-target>
     </a-mixin>
 
     <a-mixin id="SmallUfo" scale="0.25 0.25 0.25" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
       mi__collider="|defaults:|layer:ufo;radius:0.013"
-      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:1.200" trigger-target>
+      mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:0.300" trigger-target>
     </a-mixin>
 
     <image id="sky" src="./assets/sky/env.png"></image>
@@ -167,6 +171,7 @@
     </a-entity>
 
     <a-entity id="Pools" mipool__gattler="mixin: GattlerRound; container: #Gattler; size: 10; maxSize: 20"
+      mipool__shooter="mixin: ShooterRound; container: #Shooter; size: 5; maxSize: 10"
       mipool__lasteroid="mixin: LargeAsteroid; container: #Asteroids; size: 30; maxSize: 30"
       mipool__sasteroid="mixin: SmallAsteroid; container: #Asteroids; size: 10; maxSize: 30"
       mipool__tasteroid="mixin: TinyAsteroid; container: #Asteroids; size: 15; maxSize: 50"
@@ -193,6 +198,7 @@
             outline="color:#81FFFC;thickness:-0.002" visible="false"></a-entity>
         </a-entity>
         <a-entity id="Gattler"></a-entity>
+        <a-entity id="Shooter"></a-entity>
         <a-entity id="Asteroids" asteroids></a-entity>
         <a-entity id="Ufos" ufos></a-entity>
       </a-entity>

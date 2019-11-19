@@ -44,6 +44,22 @@ aframe.registerComponent('gamestate', {
     this.pauseCount = 0;
 
     /*
+    const P1 = new THREE.Vector3(1, 1, 3);
+    const P2 = new THREE.Vector3(1, 1, -3);
+    const V1 = new THREE.Vector3(0.5, 0.25, 0.1).setLength(1); // Velocity m/s
+    const V2 = new THREE.Vector3(0, 0, -1).setLength(1); // Velocity m/s
+    const t1 = new THREE.Vector3().copy(P1).sub(P2)
+    const t2 = new THREE.Vector3().copy(V2).sub(V1);
+    const t3 = new THREE.Vector3();
+    // const t3 = new THREE.Vector3().copy(t1).divide(t2);
+    const tm = t1.length() / t2.length();
+    console.log(P1, P2, V1, V2);
+    console.log(tm, t1, t2);
+    t1.copy(P1).addScaledVector(V1, tm);
+    t2.copy(P2).addScaledVector(V2, tm);
+    t3.copy(t1).sub(t2);
+    console.log(t3.length(), t1, t2);
+
     const axis = new THREE.Vector3(0, 1, 1);
     const xAxis = new THREE.Vector3(1, 0, 0);
     const yAxis = new THREE.Vector3(0, 1, 0);
