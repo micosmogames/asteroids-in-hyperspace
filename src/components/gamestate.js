@@ -4,6 +4,7 @@ import { bindEvent } from 'aframe-event-decorators';
 // import { startProcess, msWaiter } from '@micosmo/ticker/aframe-ticker';
 import { onLoadedDo } from '@micosmo/aframe/startup';
 import { noVisibilityChecks as noKeyboardVisibilityChecks } from '@micosmo/aframe/keyboard';
+// import { timeToIntercept } from '../lib/targeting';
 
 const _ = undefined;
 const PositionStates = [['Loading', 'Pause'], ['MainMenu', 'Endgame'], 'Nextlevel', 'Playing', 'Endlevel'];
@@ -44,22 +45,6 @@ aframe.registerComponent('gamestate', {
     this.pauseCount = 0;
 
     /*
-    const P1 = new THREE.Vector3(1, 1, 3);
-    const P2 = new THREE.Vector3(1, 1, -3);
-    const V1 = new THREE.Vector3(0.5, 0.25, 0.1).setLength(1); // Velocity m/s
-    const V2 = new THREE.Vector3(0, 0, -1).setLength(1); // Velocity m/s
-    const t1 = new THREE.Vector3().copy(P1).sub(P2)
-    const t2 = new THREE.Vector3().copy(V2).sub(V1);
-    const t3 = new THREE.Vector3();
-    // const t3 = new THREE.Vector3().copy(t1).divide(t2);
-    const tm = t1.length() / t2.length();
-    console.log(P1, P2, V1, V2);
-    console.log(tm, t1, t2);
-    t1.copy(P1).addScaledVector(V1, tm);
-    t2.copy(P2).addScaledVector(V2, tm);
-    t3.copy(t1).sub(t2);
-    console.log(t3.length(), t1, t2);
-
     const axis = new THREE.Vector3(0, 1, 1);
     const xAxis = new THREE.Vector3(1, 0, 0);
     const yAxis = new THREE.Vector3(0, 1, 0);
@@ -70,19 +55,24 @@ aframe.registerComponent('gamestate', {
     const yQuat = new THREE.Quaternion().setFromAxisAngle(yAxis, THREE.Math.degToRad(degrees));
     const zQuat = new THREE.Quaternion().setFromAxisAngle(zAxis, THREE.Math.degToRad(degrees));
 
-    const v1 = new THREE.Vector3(1, 2, 3);
-    const v2 = new THREE.Vector3(-1, -2, -3);
-    const dir = new THREE.Vector3().copy(v1).sub(v2);
-    const len = dir.length();
-    let angle = v1.angleTo(v2);
-    v2.copy(v1).add(dir.negate());
-    console.log(JSON.stringify(v1), JSON.stringify(v2), JSON.stringify(dir), THREE.Math.radToDeg(angle), len);
-    dir.normalize();
-    const quat = new THREE.Quaternion().setFromAxisAngle(dir, angle / 2);
-    console.log(JSON.stringify(v1), JSON.stringify(v2), JSON.stringify(dir), THREE.Math.radToDeg(angle), len);
-    v2.copy(v1).applyQuaternion(quat);
-    angle = v1.angleTo(v2);
-    console.log(JSON.stringify(v1), JSON.stringify(v2), THREE.Math.radToDeg(angle));
+    const TVS = 0.25;
+    const PVM = 0.75;
+    const PV = new THREE.Vector3();
+    const TV = new THREE.Vector3(0, 0, 1).setLength(TVS);
+    const TP = new THREE.Vector3(2, 2, 2);
+    const PP = new THREE.Vector3(1, 1, 1);
+    const IP = new THREE.Vector3();
+
+    const T1 = new THREE.Vector3();
+    const T2 = new THREE.Vector3();
+    const T3 = new THREE.Vector3();
+    const T4 = new THREE.Vector3();
+
+    const tm = timeToIntercept(PP, undefined, TP, TV, PVM);
+    IP.copy(TP).addScaledVector(TV, tm);
+    console.log(tm, IP);
+    PV.copy(IP).sub(PP);
+    console.log(PV.length() / tm, PVM, PV);
     */
   },
 

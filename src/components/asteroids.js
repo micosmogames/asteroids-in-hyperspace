@@ -134,7 +134,7 @@ let IdAsteroid = 0;
 function initAsteroid(self, el, cfg, pool) {
   if (!el.__game) el.__game = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
   el.__game.id = ++IdAsteroid;
-  el.__game.radius = el.components.collider.data.radius;
+  el.__game.radius = el.components.collider.getScaledRadius();
   el.__game.speed = cfg.speed * RefSpeed;
   el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
   el.__game.hits = cfg.hits;

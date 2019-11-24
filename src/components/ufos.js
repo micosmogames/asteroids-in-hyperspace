@@ -3,10 +3,12 @@
 import aframe from 'aframe';
 import { onLoadedDo } from '@micosmo/aframe/startup';
 import { removeIndex, removeValue } from '@micosmo/core/object';
+import { timeToIntercept } from '../lib/targeting';
 import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 const Pools = ['large', 'small'];
 const RefSpeed = 0.60; // m/s
+const ShotSpeed = RefSpeed * 4;
 const RotationSpeed = THREE.Math.degToRad(90); // Degrees / s
 const DirectionalSpeed = THREE.Math.degToRad(180) / RefSpeed * 10; // Degrees / s
 const Mass = { large: 2, small: 1 };
@@ -16,6 +18,7 @@ aframe.registerComponent("ufos", {
   schema: { default: '' },
   init() {
     this.PlaySpace = this.el.sceneEl.querySelector('#PlaySpace');
+    this.SpaceShip = this.el.sceneEl.querySelector('#SpaceShip');
 
     this.thrust = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
@@ -30,7 +33,9 @@ aframe.registerComponent("ufos", {
         large: pools.mipool__ufo,
         small: pools.mipool__sufo,
       };
+      this.shotPool = this.el.sceneEl.querySelector('#Pools').components.mipool__shooter;
       this.playspaceRadius = this.el.sceneEl.querySelector('#PlaySpace').components.geometry.data.radius;
+      this.ssRadius = this.SpaceShip.components.collider.getScaledRadius();
     });
 
     this.quat = new THREE.Quaternion();
@@ -52,7 +57,13 @@ aframe.registerComponent("ufos", {
   reset() {
     this.travelProcess.stop();
     this.launchProcess.stop();
-    this.ufos.forEach(el => { this.ufoPools[el.__game.pool].returnEntity(el) });
+    this.ufos.forEach(ufo => {
+      if (ufo.__game.shot.el) {
+        this.shotPool.returnEntity(ufo.__game.shot.el);
+        ufo.__game.shot.el = undefined;
+      }
+      this.ufoPools[ufo.__game.pool].returnEntity(ufo);
+    });
     this.ufos.length = 0;
     this.exhaustedPromise = undefined;
   },
@@ -85,6 +96,8 @@ aframe.registerComponent("ufos", {
   traveller(tm, dt) {
     dt /= 1000; // Need delta in seconds
     this.ufos.forEach(ufo => {
+      shotTraveller(this, ufo, dt);
+
       const ufoPos = ufo.object3D.position; const ufoVel = ufo.__game.velocity;
       let attempts = 0; let nObstacles = 0;
       let i = ufo.__game.obstacles.length;
@@ -97,12 +110,11 @@ aframe.registerComponent("ufos", {
         // calculate the time for the inner colliders to touch. Then determine the actual position in that time and
         // see if the collision would actually occur.
         // This needs to be calculated every frame as obstacles or the ufo can change direction.
-        const curDist = this.v1.copy(ufoPos).sub(obsPos).length();
-        const closingVel = this.v2.copy(ufoVel).sub(obsVel); const closingSpeed = closingVel.length();
+        const curDist = ufoPos.distanceTo(obsPos); const closingSpeed = ufoVel.distanceTo(obsVel);
         const collisionTime = curDist / closingSpeed;
-        this.v3.copy(ufoPos).addScaledVector(ufoVel, collisionTime);
-        this.v4.copy(obsPos).addScaledVector(obsVel, collisionTime);
-        const collisionDist = this.v3.sub(this.v4).length();
+        this.v1.copy(ufoPos).addScaledVector(ufoVel, collisionTime);
+        this.v2.copy(obsPos).addScaledVector(obsVel, collisionTime);
+        const collisionDist = this.v1.sub(this.v2).length(); // this.v1 (Collision Vector) used below
         if (isNaN(collisionDist) || collisionDist > rObsUfo)
           continue; // No collision so ignore this obstacle.
 
@@ -117,9 +129,8 @@ aframe.registerComponent("ufos", {
         }
 
         // Adjust direction along the axis with the least closing speed.
-        // const axis = closingVel.x < closingVel.y && closingVel.x < closingVel.z ? 'x' : closingVel.y < closingVel.z ? 'y' : 'z';
         const axis = ufoVel.x < ufoVel.y && ufoVel.x < ufoVel.z ? 'x' : ufoVel.y < ufoVel.z ? 'y' : 'z';
-        const axisVelAdjust = (Math.abs(this.v3[axis] - ufoPos[axis]) + rObsUfo * 1.25 * (attempts + 1) * 0.50) / collisionTime;
+        const axisVelAdjust = (Math.abs(this.v1[axis] - ufoPos[axis]) + rObsUfo * 1.25 * (attempts + 1) * 0.50) / collisionTime;
         ufoVel[axis] = ufoVel[axis] > 0 ? ufoVel[axis] - axisVelAdjust : ufoVel[axis] + axisVelAdjust;
         ufoVel.setLength(ufo.__game.speed);
         //        console.log(ufo.__game.id, attempts, 'Avoid forward', axis);
@@ -147,6 +158,8 @@ aframe.registerComponent("ufos", {
         this.v3.copy(this.zAxis).applyQuaternion(ufo.object3D.quaternion).setLength(this.playspaceRadius * 2);
         ufo.__game.targetVector.copy(ufo.object3D.position).add(this.v3);
         ufoVel.copy(this.v3).setLength(ufo.__game.speed);
+        ufo.__game.shot.count = ufo.__game.shot.clip;
+        nextShotInterval(this, ufo);
       }
     });
     return 'more';
@@ -300,23 +313,103 @@ function initUfo(self, el, cfg, pool) {
     velocity: new THREE.Vector3(),
     rotationAxis: new THREE.Vector3(),
     targetVector: new THREE.Vector3(),
-    obstacles: []
+    obstacles: [],
+    shot: {
+      velocity: new THREE.Vector3(),
+      speed: 0,
+      count: 0,
+      clip: 0,
+      interval: 0,
+      el: undefined
+    }
   };
-  el.__game.id = ++IdUfo;
-  el.__game.speed = cfg.speed * RefSpeed;
-  el.__game.radius = el.components.collider.data.radius;
+  const game = el.__game;
+  game.id = ++IdUfo;
+  game.speed = cfg.speed * RefSpeed;
+  game.radius = el.components.collider.getScaledRadius();
   self.v3.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(self.playspaceRadius * 2);
-  el.__game.targetVector.copy(el.object3D.position).add(self.v3);
-  el.__game.velocity.copy(self.v3).setLength(el.__game.speed);
-  el.__game.hits = cfg.hits;
-  el.__game.accuracy = cfg.accuracy;
-  el.__game.rotationAxis = self.yAxis;
-  el.__game.angularSpeed = RotationSpeed;
-  el.__game.directionalSpeed = DirectionalSpeed * el.__game.speed;
-  el.__game.pool = pool;
-  el.__game.mass = Mass[pool];
-  el.__game.obstacles.length = 0;
-  return el;
+  game.targetVector.copy(el.object3D.position).add(self.v3);
+  game.velocity.copy(self.v3).setLength(game.speed);
+  game.hits = cfg.hits;
+  game.accuracy = cfg.accuracy;
+  game.rotationAxis = self.yAxis;
+  game.angularSpeed = RotationSpeed;
+  game.directionalSpeed = DirectionalSpeed * game.speed;
+  game.pool = pool;
+  game.mass = Mass[pool];
+  game.obstacles.length = 0;
+  game.shot.count = game.shot.clip = cfg.shots;
+  game.shot.speed = ShotSpeed * cfg.shotSpeed;
+  return nextShotInterval(self, el);
+}
+
+function nextShotInterval(self, ufo) {
+  const game = ufo.__game;
+  game.shot.interval = 0;
+  if (game.shot.count <= 0) return ufo;
+  const tmGap = ufo.object3D.position.distanceTo(game.targetVector) / game.shot.count / game.speed;
+  game.shot.interval = Math.random() * tmGap;
+  return ufo;
+}
+
+function shotTraveller(self, ufo, sdt) {
+  const game = ufo.__game;
+  if (game.shot.el) {
+    const vPos = game.shot.el.object3D.position;
+    vPos.addScaledVector(game.shot.velocity, sdt);
+    if (vPos.length() > self.playspaceRadius)
+      destroyShot(self, ufo, game.shot.el);
+    return;
+  }
+  if (game.shot.interval <= 0 || (game.shot.interval -= sdt) > 0) return;
+  // Fire a shot at the spaceship, applying the accuracy factor.
+  const ssPos = self.SpaceShip.object3D.position;
+  const ssVel = self.SpaceShip.components.spaceship.velocity;
+  const tIntercept = timeToIntercept(ufo.object3D.position, game.velocity, ssPos, ssVel, game.shot.speed);
+  if (tIntercept === undefined || !ufo.object3D.visible) {
+    // Cannot intercept, so will need to try again.
+    nextShotInterval(self, ufo);
+    return;
+  }
+  const shot = self.shotPool.requestEntity();
+  if (shot === undefined) {
+    // Gattler pool is empty so calculate a new shot interval
+    nextShotInterval(self, ufo);
+    return;
+  }
+  game.shot.el = shot;
+  self.v2.copy(ssVel);
+  if (self.v2.length() === 0)
+    self.v2.copy(self.zAxis).applyQuaternion(self.SpaceShip.object3D.quaternion).setLength(0.0001);
+  self.v2.multiplyScalar(tIntercept); // Target adjustment
+  if (game.accuracy < 1) {
+    // Adjust the intercept time to allow for accurracy.
+    const spread = self.ssRadius / game.accuracy; // Behind or ahead.
+    let accAdjust = (Math.random() * 2 - 1) * spread;
+    if (Math.abs(accAdjust) > self.ssRadius)
+      accAdjust *= 10; // Broaden the spread for a miss.
+    self.v2.setLength(self.v2.length() + accAdjust); // Adjust intercept position
+  }
+  self.v1.copy(ssPos).add(self.v2); // Target position
+  game.shot.velocity.copy(self.v1).sub(ufo.object3D.position); // Shot direction and distance
+  // Align the direction of the shot to the target direction, will need to flip the shot around
+  // as is facing in a -z direction.
+  shot.object3D.position.copy(ufo.object3D.position);
+  shot.object3D.lookAt(self.SpaceShip.object3D.getWorldPosition(self.v3).add(self.v2));
+  self.axis.copy(self.yAxis).applyQuaternion(shot.object3D.quaternion);
+  shot.object3D.applyQuaternion(self.quat.setFromAxisAngle(self.axis, Math.PI));
+  // Position the shot on the radius of the ufo. Will make a slight adjustment to speed.
+  shot.object3D.position.add(self.v2.copy(game.shot.velocity).setLength(game.radius));
+  game.shot.velocity.setLength(game.shot.velocity.length() / tIntercept); // Now as a velocity
+  shot.object3D.visible = true;
+  shot.play();
+}
+
+function destroyShot(self, ufo, shot) {
+  self.shotPool.returnEntity(shot);
+  ufo.__game.shot.el = undefined;
+  ufo.__game.shot.count--;
+  return nextShotInterval(self, ufo);
 }
 
 function randomiseVector(v, length) {

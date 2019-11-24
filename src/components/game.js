@@ -100,6 +100,10 @@ aframe.registerComponent("game", {
   collisionstart_spaceship_asteroid(el1, el2) {
     this.compSpaceShip.collision(el1, el2);
   },
+  collisionstart_shooter_asteroid(el1, el2) {
+  },
+  collisionstart_shooter_spaceship(el1, el2) {
+  },
 
   collisionend: bindEvent(function (evt) {
     this[this.fCollisionEnd(evt.detail.layer1, evt.detail.layer2)](evt.detail.el1, evt.detail.el2);
@@ -120,16 +124,20 @@ aframe.registerComponent("game", {
   },
   collisionend_spaceship_asteroid(el1, el2) {
   },
+  collisionend_shooter_asteroid(el1, el2) {
+  },
+  collisionend_shooter_spaceship(el1, el2) {
+  },
 });
 
 var Levels = {
   1: {
     asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 20 }, small: {}, tiny: {} },
-    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, large: { count: 10, timing: 1 }, small: { count: 0, timing: 1 } }
+    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.25, hits: 1, shots: 1, shotSpeed: 0.10, large: { count: 10, timing: 1 }, small: { count: 0, timing: 1 } }
   },
   2: {
     asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: {}, small: {}, tiny: {} },
-    ufos: { count: 0, speed: 0.25, timing: 60, accuracy: 0.10, hits: 1, large: {}, small: { count: 2 } }
+    ufos: { count: 0, speed: 0.25, timing: 60, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 1, large: {}, small: { count: 2 } }
   },
 }
 
@@ -141,41 +149,42 @@ function initialiseLevels() {
   for (let i = 1; ; i = i + 1) {
     if (!Levels[i]) return;
     const ast = Levels[i].asteroids; const ufo = Levels[i].ufos;
-    if (ast.count) {
-      if (ast.large.count === undefined) ast.large.count = ast.count;
-      if (ast.small.count === undefined) ast.small.count = ast.count;
-      if (ast.tiny.count === undefined) ast.tiny.count = ast.count;
-    }
-    if (ast.speed) {
-      if (ast.large.speed === undefined) ast.large.speed = ast.speed;
-      if (ast.small.speed === undefined) ast.small.speed = ast.speed * LevelSpeedFactor;
-      if (ast.tiny.speed === undefined) ast.tiny.speed = ast.speed * 2 * LevelSpeedFactor;
-    }
-    if (ast.rotation) {
-      if (ast.large.rotation === undefined) ast.large.rotation = ast.rotation;
-      if (ast.small.rotation === undefined) ast.small.rotation = ast.rotation * LevelRotationFactor;
-      if (ast.tiny.rotation === undefined) ast.tiny.rotation = ast.rotation * LevelRotationFactor * 2;
-    }
-    if (ast.hits) {
-      if (ast.large.hits === undefined) ast.large.hits = ast.hits;
-      if (ast.small.hits === undefined) ast.small.hits = ast.hits;
-      if (ast.tiny.hits === undefined) ast.tiny.hits = ast.hits;
-    }
-    if (ufo.count) {
-      if (ufo.large.count === undefined) ufo.large.count = ufo.count;
-      if (ufo.small.count === undefined) ufo.small.count = ufo.count;
-    }
-    if (ufo.speed) {
-      if (ufo.large.speed === undefined) ufo.large.speed = ufo.speed;
-      if (ufo.small.speed === undefined) ufo.small.speed = ufo.speed * LevelSpeedFactor;
-    }
-    if (ufo.timing) {
-      if (ufo.large.timing === undefined) ufo.large.timing = ufo.timing;
-      if (ufo.small.timing === undefined) ufo.small.timing = ufo.timing;
-    }
-    if (ufo.accuracy) {
-      if (ufo.large.accuracy === undefined) ufo.large.accuracy = ufo.accuracy;
-      if (ufo.small.accuracy === undefined) ufo.small.accuracy = ufo.accuracy * LevelAccuracyFactor;
-    }
+
+    if (ast.large.count === undefined) ast.large.count = ast.count;
+    if (ast.small.count === undefined) ast.small.count = ast.count;
+    if (ast.tiny.count === undefined) ast.tiny.count = ast.count;
+
+    if (ast.large.speed === undefined) ast.large.speed = ast.speed;
+    if (ast.small.speed === undefined) ast.small.speed = ast.speed * LevelSpeedFactor;
+    if (ast.tiny.speed === undefined) ast.tiny.speed = ast.speed * 2 * LevelSpeedFactor;
+
+    if (ast.large.rotation === undefined) ast.large.rotation = ast.rotation;
+    if (ast.small.rotation === undefined) ast.small.rotation = ast.rotation * LevelRotationFactor;
+    if (ast.tiny.rotation === undefined) ast.tiny.rotation = ast.rotation * LevelRotationFactor * 2;
+
+    if (ast.large.hits === undefined) ast.large.hits = ast.hits;
+    if (ast.small.hits === undefined) ast.small.hits = ast.hits;
+    if (ast.tiny.hits === undefined) ast.tiny.hits = ast.hits;
+
+    if (ufo.large.count === undefined) ufo.large.count = ufo.count;
+    if (ufo.small.count === undefined) ufo.small.count = ufo.count;
+
+    if (ufo.large.speed === undefined) ufo.large.speed = ufo.speed;
+    if (ufo.small.speed === undefined) ufo.small.speed = ufo.speed * LevelSpeedFactor;
+
+    if (ufo.large.timing === undefined) ufo.large.timing = ufo.timing;
+    if (ufo.small.timing === undefined) ufo.small.timing = ufo.timing;
+
+    if (ufo.large.accuracy === undefined) ufo.large.accuracy = ufo.accuracy;
+    if (ufo.small.accuracy === undefined) ufo.small.accuracy = ufo.accuracy * LevelAccuracyFactor;
+
+    if (ufo.large.hits === undefined) ufo.large.hits = ufo.hits;
+    if (ufo.small.hits === undefined) ufo.small.hits = ufo.hits;
+
+    if (ufo.large.shots === undefined) ufo.large.shots = ufo.shots;
+    if (ufo.small.shots === undefined) ufo.small.shots = ufo.shots;
+
+    if (ufo.large.shotSpeed === undefined) ufo.large.shotSpeed = ufo.shotSpeed;
+    if (ufo.small.shotSpeed === undefined) ufo.small.shotSpeed = ufo.shotSpeed * LevelSpeedFactor;
   }
 }
