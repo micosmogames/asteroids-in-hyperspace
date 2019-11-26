@@ -103,6 +103,9 @@ aframe.registerComponent("asteroids", {
       this.travelProcess.stop();
     }
   },
+  shooterHit(el) {
+    this.gattlerHit(el);
+  },
   collision(el1, el2) {
     // Transfer of momentum based calculation where M(Momentum) = v(Velocity) * m(Mass);
     // M1 = v1 * m1; M2 = v2 * m2;

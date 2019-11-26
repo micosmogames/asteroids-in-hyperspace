@@ -169,6 +169,9 @@ aframe.registerComponent("spaceship", {
   },
 
   collision(el1, el2) {
+    this.shooterHit();
+  },
+  shooterHit() {
     if (--this.lives === 0)
       this.el.sceneEl.components.states.chain('Endgame');
   },

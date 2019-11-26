@@ -32,5 +32,6 @@ export function timeToIntercept(launchPos, launchVel = V0, targetPos, targetVel,
 
   // discriminant = b^2 - 4ac
   const discriminant = b * b - 4 * a * c;
+  // Return value is 'c/at'.
   return discriminant <= 0 ? undefined : 2 * c / (Math.sqrt(discriminant) - b);
 }

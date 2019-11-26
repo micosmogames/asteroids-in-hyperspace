@@ -38,50 +38,46 @@
       material="shader:flat;color:white" mi__collider="|defaults:|layer:shooter;collidesWith:asteroid,spaceship;radius:0.010">
     </a-mixin>
 
-    <a-mixin id="LargeAsteroid" scale="0.30 0.30 0.30" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+    <a-mixin id="LargeAsteroid" scale="0.75 0.75 0.75" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"
       mi__collider="|defaults:|layer:asteroid;collidesWith:asteroid;radius:0.045" trigger-target>
     </a-mixin>
 
-    <a-mixin id="SmallAsteroid" scale="0.225 0.225 0.225"
+    <a-mixin id="SmallAsteroid" scale="0.50 0.50 0.50"
       gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
       outline="color:#6D68FF;thickness:-0.002"
       mi__collider="|defaults:|layer:asteroid;collidesWith:asteroid;radius:0.045" trigger-target>
     </a-mixin>
 
-    <a-mixin id="TinyAsteroid" scale="0.15 0.15 0.15" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
+    <a-mixin id="TinyAsteroid" scale="0.25 0.25 0.25" gltf-blender-part="part:asteroid;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#6D68FF;thickness:-0.002"
       mi__collider="|defaults:|layer:asteroid;collidesWith:asteroid;radius:0.045" trigger-target>
     </a-mixin>
 
-    <a-mixin id="Ufo" scale="0.50 0.50 0.50" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+    <a-mixin id="Ufo" scale="0.60 0.60 0.60" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
       mi__collider="|defaults:|layer:ufo;radius:0.013"
       mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:0.300" trigger-target>
     </a-mixin>
 
-    <a-mixin id="SmallUfo" scale="0.25 0.25 0.25" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
+    <a-mixin id="SmallUfo" scale="0.40 0.40 0.40" gltf-blender-part="part:ufo;src:#models-gltf;findMesh:true"
       material="shader:flat;color:black" outline="color:#8B0002;thickness:-0.002"
       mi__collider="|defaults:|layer:ufo;radius:0.013"
       mi__collider__sensor="|defaults:|layer:ufosensor;collidesWith:asteroid,ufosensor;radius:0.300" trigger-target>
     </a-mixin>
 
-    <image id="sky" src="./assets/sky/env.png"></image>
-    <image id="sky2" src="./assets/sky/env-bottomless.png"></image>
     <image id="micosmo" src="./assets/title/micosmo-icon.06e3433d.png"></image>
-
+    <!-- Credit: ESO/Serge Brunier -->
+    <image id="galaxy" src="./assets/sky/eso0932a.jpg"></image>
+    <image id="grid" src="./assets/environment/grid-square.png"></image>
+        
     <a-asset-item response-type="arraybuffer" id="track1" src="./assets/audio/Pocketmaster_-_04_-_The_Dark_Seed.ogg">
     </a-asset-item>
     <a-asset-item response-type="arraybuffer" id="track2" src="./assets/audio/Pktmstr-08-Atomic_Fessenheim_Ed.ogg">
     </a-asset-item>
 
-    <a-asset-item id="env-gltf" src="./assets/environment/environment.gltf"></a-asset-item>
-    <a-asset-item id="models-gltf" src="./assets/models.gltf"></a-asset-item>
+    <a-asset-item id="models-gltf" src="./assets/game-actors/models.gltf"></a-asset-item>
   </a-assets>
-
-  <!--<a-entity id="fps-counter" fps-counter="" position="0 1.337 -0.723"></a-entity>
-  states="list:Loading,MainMenu,Nextlevel,Playing,Endlevel,Endgame,Pause,Resume"
-  -->
 
   <a-entity jukebox="volume:0.05;state:off;currentTrack:0" misound__track1="src: #track1; positional: false; offset:8"
     misound__track2="src: #track2; positional: false;">
@@ -95,9 +91,6 @@
         position="-0.481 1.731 0.053"></a-entity>
       <a-entity class="fillLight" position="0.485 1.2 -0.654" light="intensity:0.5;target:#GameBoard;color:#2999ff">
       </a-entity>
-
-      <!-- <a-entity position="0 0.1 0" gltf-blender-part="part:environment-1;src:#env-gltf;findMesh:false"
-        shadeless-recursive></a-entity> -->
     </a-entity>
   </a-entity>
 
@@ -153,9 +146,6 @@
   </a-entity>
 
   <a-entity id="GameBoard" position="0 0 0" visible="false">
-    <!--<a-sphere position="-0.2 0 0.2" scale="0.05 0.05 0.05" material="shader:standard;sphericalEnvMap:#sky"></a-sphere>
-    
-    -->
     <a-entity id="MainMenu" position="0 1.50 0" visible="false">
       <a-image src="#micosmo" position="-0.055 0.760 0" scale="2.5 2 1" rotation="-0.085 0.003 0.800"></a-image>
       <a-entity mi__text="|defaults:|value:MAIN   MENU;width:2.1" position="0.120 -0.0 0"></a-entity>
@@ -178,19 +168,13 @@
       mipool__ufo="mixin: Ufo; container: #Ufos; size: 30" mipool__sufo="mixin: SmallUfo; container: #Ufos; size: 8">
     </a-entity>
 
-    <a-entity id="Game" position="0 0.330 0.100" ticker game="level:1" visible="false">
-      <!-- <a-entity position="0 0 0">
-        <a-entity shadow="receive:true;cast:false" gltf-blender-part="part:receive-shadows;src:#env-gltf;findMesh:false"
-          spherical-envmap="image:#sky;intensity:.5"></a-entity>
-        <a-entity shadow="receive:false;cast:false" gltf-blender-part="part:no-shadows;src:#env-gltf;findMesh:false"
-          shadeless-recursive></a-entity>
-      </a-entity> -->
+    <a-entity id="Game" position="0 0.330 0.100" ticker game="level:3" visible="false">
       <a-entity id="PlaySpace" geometry="primitive:sphere; radius:0.30;"
-        material="shader:standard; normalScale:0.25 0.25; wireframe:true; wireframe-linewidth: 0.25" playspace
-        ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.5 0">
+        material="shader:flat; src:#grid; repeat:30 15; transparent:false; alphaTest: 0.10" flip-normals 
+        playspace ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.5 0">
         <a-entity id="SpaceShip" position="0 0 0" scale="0.30 0.30 0.30"
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
-          outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 5"
+          outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 10"
           ctrlmap="thrust:ltrig, rightTrigger:rtrig" keymap="|MotionKeys:shiprotate| thrust:+"
           mi__collider="|defaults:|layer:spaceship;collidesWith:ufo,asteroid;radius:0.015;policy:init">
           <a-entity id="Thruster" position="0.001 0 0" scale="1.5 1.5 1.5"
@@ -233,5 +217,5 @@
     </a-entity>
   </a-entity>
 
-  <a-sky color="black"></a-sky>
+  <a-sky src="#galaxy" radius="5000" position="0 2500 0"></a-sky>
 </a-scene>

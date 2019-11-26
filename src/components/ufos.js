@@ -8,9 +8,9 @@ import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 const Pools = ['large', 'small'];
 const RefSpeed = 0.60; // m/s
-const ShotSpeed = RefSpeed * 4;
+const ShotSpeed = RefSpeed * 2;
 const RotationSpeed = THREE.Math.degToRad(90); // Degrees / s
-const DirectionalSpeed = THREE.Math.degToRad(180) / RefSpeed * 10; // Degrees / s
+// const DirectionalSpeed = THREE.Math.degToRad(180) / RefSpeed * 10; // Degrees / s
 const Mass = { large: 2, small: 1 };
 const AvoidAttempts = 5;
 
@@ -158,6 +158,7 @@ aframe.registerComponent("ufos", {
         this.v3.copy(this.zAxis).applyQuaternion(ufo.object3D.quaternion).setLength(this.playspaceRadius * 2);
         ufo.__game.targetVector.copy(ufo.object3D.position).add(this.v3);
         ufoVel.copy(this.v3).setLength(ufo.__game.speed);
+        // Reload the shot count.
         ufo.__game.shot.count = ufo.__game.shot.clip;
         nextShotInterval(this, ufo);
       }
@@ -276,6 +277,9 @@ aframe.registerComponent("ufos", {
       this.exhaustedPromise = undefined;
     }
   },
+  shooterHit(shot) {
+    destroyShot(this, shot.__game.ufo, shot);
+  },
   startAvoidUfo(el1, el2) {
     // Duplicate events are thrown away
     el1.__game.obstacles.push(el2);
@@ -334,12 +338,12 @@ function initUfo(self, el, cfg, pool) {
   game.accuracy = cfg.accuracy;
   game.rotationAxis = self.yAxis;
   game.angularSpeed = RotationSpeed;
-  game.directionalSpeed = DirectionalSpeed * game.speed;
+  //  game.directionalSpeed = DirectionalSpeed * game.speed;
   game.pool = pool;
   game.mass = Mass[pool];
   game.obstacles.length = 0;
   game.shot.count = game.shot.clip = cfg.shots;
-  game.shot.speed = ShotSpeed * cfg.shotSpeed;
+  game.shot.speed = ShotSpeed * cfg.shotSpeed + game.speed; // Make sure that we have + velocity from rear shot
   return nextShotInterval(self, el);
 }
 
@@ -377,6 +381,8 @@ function shotTraveller(self, ufo, sdt) {
     nextShotInterval(self, ufo);
     return;
   }
+  if (!shot.__game) shot.__game = { ufo: undefined };
+  shot.__game.ufo = ufo;
   game.shot.el = shot;
   self.v2.copy(ssVel);
   if (self.v2.length() === 0)

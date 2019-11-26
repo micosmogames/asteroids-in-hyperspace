@@ -100,44 +100,39 @@ aframe.registerComponent("game", {
   collisionstart_spaceship_asteroid(el1, el2) {
     this.compSpaceShip.collision(el1, el2);
   },
-  collisionstart_shooter_asteroid(el1, el2) {
+  collisionstart_shooter_asteroid(elRound, elAsteroid) {
+    this.compUfos.shooterHit(elRound, elAsteroid);
+    this.compAsteroids.shooterHit(elAsteroid, elRound);
   },
-  collisionstart_shooter_spaceship(el1, el2) {
+  collisionstart_shooter_spaceship(elRound, elSpaceShip) {
+    this.compUfos.shooterHit(elRound, elSpaceShip);
+    this.compSpaceShip.shooterHit(elSpaceShip, elRound);
   },
 
   collisionend: bindEvent(function (evt) {
-    this[this.fCollisionEnd(evt.detail.layer1, evt.detail.layer2)](evt.detail.el1, evt.detail.el2);
+    const fEnd = this[this.fCollisionEnd(evt.detail.layer1, evt.detail.layer2)];
+    if (fEnd) fEnd.call(this, evt.detail.el1, evt.detail.el2);
   }),
-  collisionend_gattler_asteroid(elRound, elAsteroid) {
-  },
-  collisionend_gattler_ufo(elRound, elUfo) {
-  },
-  collisionend_asteroid_asteroid(el1, el2) {
-  },
   collisionend_ufosensor_asteroid(el1, el2) {
     this.compUfos.endAvoidAsteroid(el1, el2);
   },
   collisionend_ufosensor_ufosensor(el1, el2) {
     this.compUfos.endAvoidUfo(el1, el2);
-  },
-  collisionend_spaceship_ufo(el1, el2) {
-  },
-  collisionend_spaceship_asteroid(el1, el2) {
-  },
-  collisionend_shooter_asteroid(el1, el2) {
-  },
-  collisionend_shooter_spaceship(el1, el2) {
-  },
+  }
 });
 
 var Levels = {
   1: {
-    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 20 }, small: {}, tiny: {} },
-    ufos: { count: 2, speed: 0.25, timing: 20, accuracy: 0.25, hits: 1, shots: 1, shotSpeed: 0.10, large: { count: 10, timing: 1 }, small: { count: 0, timing: 1 } }
+    asteroids: { count: 2, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 1 }, small: { }, tiny: {} },
+    ufos: { count: 0, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 0.25, large: { }, small: { } }
   },
   2: {
-    asteroids: { count: 3, speed: 0.125, rotation: 0.25, hits: 1, large: {}, small: {}, tiny: {} },
-    ufos: { count: 0, speed: 0.25, timing: 60, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 1, large: {}, small: { count: 2 } }
+    asteroids: { count: 2, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 1 }, small: {}, tiny: { count: 3 } },
+    ufos: { count: 0, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 0.25, large: {}, small: {} }
+  },
+  3: {
+    asteroids: { count: 2, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 1 }, small: {}, tiny: { count: 3 } },
+    ufos: { count: 1, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 0.25, large: { count: 1 }, small: { } }
   },
 }
 
