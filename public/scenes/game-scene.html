@@ -70,6 +70,8 @@
     <!-- Credit: ESO/Serge Brunier -->
     <image id="galaxy" src="./assets/sky/eso0932a.jpg"></image>
     <image id="grid" src="./assets/environment/grid-square.png"></image>
+    <image id="grid-corner" src="./assets/environment/grid-square-corner.png"></image>
+    <image id="grid-legs" src="./assets/environment/grid-square-legs.png"></image>
         
     <a-asset-item response-type="arraybuffer" id="track1" src="./assets/audio/Pocketmaster_-_04_-_The_Dark_Seed.ogg">
     </a-asset-item>
@@ -169,9 +171,19 @@
     </a-entity>
 
     <a-entity id="Game" position="0 0.330 0.100" ticker game="level:3" visible="false">
+
       <a-entity id="PlaySpace" geometry="primitive:sphere; radius:0.30;"
-        material="shader:flat; src:#grid; repeat:30 15; transparent:false; alphaTest: 0.10" flip-normals 
+        material="shader:flat; src:#grid-corner; repeat:30 15; transparent:false; alphaTest: 0.10" flip-normals 
         playspace ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.5 0">
+
+        <a-entity geometry="primitive:sphere; radius:0.30;"
+        material="shader:flat; src:#grid-legs; repeat:30 15; transparent:true; opacity: 0.25; alphaTest: 0.10"
+        position="0 0 0"></a-entity>
+
+        <a-entity geometry="primitive:sphere; radius:0.301;"
+        material="shader:flat; src:#grid; repeat:30 15; transparent:true; opacity: 0.15; alphaTest: 0.10"
+        position="0 0 0"></a-entity>
+
         <a-entity id="SpaceShip" position="0 0 0" scale="0.30 0.30 0.30"
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
           outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 10"
@@ -181,10 +193,12 @@
             gltf-blender-part="part:flame;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
             outline="color:#81FFFC;thickness:-0.002" visible="false"></a-entity>
         </a-entity>
+
         <a-entity id="Gattler"></a-entity>
         <a-entity id="Shooter"></a-entity>
         <a-entity id="Asteroids" asteroids></a-entity>
         <a-entity id="Ufos" ufos></a-entity>
+
       </a-entity>
     </a-entity>
 
