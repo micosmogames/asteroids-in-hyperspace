@@ -175,11 +175,12 @@
       <a-entity id="PlaySpace" geometry="primitive:sphere; radius:0.30;"
         material="shader:flat; src:#grid-corner; repeat:30 15; transparent:false; alphaTest: 0.10" flip-normals 
         playspace ctrlmap="rotate:leftstick, rotate:leftpad" keyMap="|MotionKeys:rotate|" position="0 1.5 0">
-
+        <!-- grid-corner and grid-legs form highlighted inner background. Note only call flip-normals once for 
+             multiple spheres of same radius and position. grid is used for low opacity outer front face.
+             The following spheres are children of PlaySpace and will therefore rotate with the playspace -->
         <a-entity geometry="primitive:sphere; radius:0.30;"
         material="shader:flat; src:#grid-legs; repeat:30 15; transparent:true; opacity: 0.25; alphaTest: 0.10"
         position="0 0 0"></a-entity>
-
         <a-entity geometry="primitive:sphere; radius:0.301;"
         material="shader:flat; src:#grid; repeat:30 15; transparent:true; opacity: 0.15; alphaTest: 0.10"
         position="0 0 0"></a-entity>
