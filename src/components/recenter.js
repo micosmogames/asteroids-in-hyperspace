@@ -58,7 +58,7 @@ aframe.registerComponent("recenter", {
     const absY = Math.abs(y);
     if (absY < 0.1) { this.offsetProcess.stop(); return true }
     this.offsetProcess.restart();
-    this.offsetFactor.set(0, 0, absY >= 0.1 ? y : 0);
+    this.offsetFactor.set(0, 0, absY >= 0.1 ? -y : 0);
     return true;
   },
   zin_down() { this.offsetFactor.set(0, 0, -1); this.offsetProcess.restart(); return true },

@@ -5,9 +5,6 @@ import { onLoadedDo } from '@micosmo/aframe/startup';
 import { removeIndex } from '@micosmo/core/object';
 import * as ticker from "@micosmo/ticker/aframe-ticker";
 
-const RefSpeed = 0.20; // m/s
-const RefAngularSpeed = THREE.Math.degToRad(180); // Degrees / s
-// const Pools = ['large', 'small', 'tiny'];
 const Mass = { large: 4, small: 2, tiny: 1 };
 
 aframe.registerComponent("asteroids", {
@@ -138,11 +135,11 @@ function initAsteroid(self, el, cfg, pool) {
   if (!el.__game) el.__game = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
   el.__game.id = ++IdAsteroid;
   el.__game.radius = el.components.collider.getScaledRadius();
-  el.__game.speed = cfg.speed * RefSpeed;
+  el.__game.speed = cfg.speed;
   el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
   el.__game.hits = cfg.hits;
   randomiseVector(el.__game.rotationAxis, 1).normalize();
-  el.__game.angularSpeed = cfg.rotation * RefAngularSpeed;
+  el.__game.angularSpeed = THREE.Math.degToRad(cfg.rotation);
   el.__game.pool = pool;
   el.__game.mass = Mass[pool];
   return el;

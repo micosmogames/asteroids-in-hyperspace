@@ -9,14 +9,21 @@ import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 const MaxPitchYaw = THREE.Math.degToRad(2); // In degrees
 const KeyPitchYawFactor = 6;
-const MaxSpeed = 0.15; // m/s
-const Thrust = MaxSpeed * 2; // m/s/s
-const ReverseThrust = Thrust / 4; // m/s/s
-const ReverseThrustWait = 250;
-const GattlerRoundSpeed = MaxSpeed * 4;
+const MaxSpeedPickup = 7.5; // s
+const ThrustPickup = 0.50; // s
+const MaxSpeed = 0.30; // m/s
+// ThrustPickupAcc is used to build up to Thrust so we can satisfy the following expression to determine ThrustPickupAcc.
+//    MaxSpeed = 1/2 * ThrustPickupAcc * ThrustPickup^2 + Thrust * (MaxSpeedPickup - ThrustPickup).
+// Note: That '1/2 * ThrustPickupAcc * ThrustPickup^2' will give us a velocity at the end of the ThrustPickup interval.
+const ThrustPickupAcc = MaxSpeed / (0.5 * ThrustPickup * ThrustPickup + (MaxSpeedPickup - ThrustPickup) * ThrustPickup);
+const Thrust = ThrustPickupAcc * ThrustPickup; // m/s/s
+const ReverseThrust = Thrust * 0.50; // m/s/s
+const ReverseThrustPickup = ThrustPickup * 2; // s
+const ReverseThrustPickupAcc = ReverseThrust / ReverseThrustPickup;
+const GattlerRoundSpeed = MaxSpeed * 2;
 const GattlerRoundAdjustment = 0.00525;
-const GattlerRounds = 5;
-const TouchAngularRotation = THREE.Math.degToRad(270); // Degrees / s
+const GattlerRounds = 3;
+const TouchAngularRotation = THREE.Math.degToRad(180); // Degrees / s
 
 aframe.registerComponent("spaceship", {
   schema: {
@@ -25,6 +32,7 @@ aframe.registerComponent("spaceship", {
   init() {
     this.sysController = this.el.sceneEl.systems.controller;
     this.sysKeyboard = this.el.sceneEl.systems.keyboard;
+    this.GamePointer = this.el.sceneEl.querySelector('#gamePointer');
     this.PlaySpace = this.el.sceneEl.querySelector('#PlaySpace');
     this.Thruster = this.el.querySelector('#Thruster');
     this.Gattler = this.PlaySpace.querySelector('#Gattler');
@@ -32,14 +40,14 @@ aframe.registerComponent("spaceship", {
     if (!this.el.sceneEl.is('vr-mode'))
       this.sysKeyboard.addListeners(this);
 
-    this.thrust = new THREE.Vector3();
+    this.vThrust = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
     this.thrusterCounter = 0;
     this.gattlerRounds = [];
 
     this.trackerProcess = ticker.createProcess(this.tracker.bind(this), this.el);
     this.thrustProcess = ticker.createProcess(this.thruster.bind(this), this.el);
-    this.reverseThrustProcess = ticker.createProcess(ticker.iterator(ticker.msWaiter(ReverseThrustWait), this.reverseThruster.bind(this)), this.el);
+    this.reverseThrustProcess = ticker.createProcess(this.reverseThruster.bind(this), this.el);
     this.travelProcess = ticker.createProcess(this.traveller.bind(this), this.el);
     this.gattlerProcess = ticker.createProcess(this.gattler.bind(this), this.el);
     this.gattlerWaiter = ticker.msWaiter(1000 / GattlerRounds);
@@ -56,8 +64,8 @@ aframe.registerComponent("spaceship", {
     });
 
     this.quat = new THREE.Quaternion();
-    this.qTouch = new THREE.Quaternion();
-    this.vTouch = new THREE.Vector3();
+    this.qGamePtr = new THREE.Quaternion();
+    this.vGamePtr = new THREE.Vector3();
     this.xAxis = new THREE.Vector3(1, 0, 0);
     this.yAxis = new THREE.Vector3(0, 1, 0);
     this.zAxis = new THREE.Vector3(0, 0, 1);
@@ -114,43 +122,63 @@ aframe.registerComponent("spaceship", {
   },
   keyup_thrust() {
     this.thrustProcess.stop();
-    this.reverseThrustRotation = this.el.object3D.quaternion;
     this.reverseThrustProcess.start();
     this.Thruster.object3D.visible = false;
     this.thrusterCounter = 0;
     return true
   },
-  thruster(tm, dt) {
-    if ((this.thrusterCounter -= dt) <= 0) {
-      this.thrusterCounter = randomInt(50, 100);
-      this.Thruster.object3D.visible = !this.Thruster.object3D.visible;
+  * thruster(state) {
+    const maxSpeedSq = MaxSpeed * MaxSpeed;
+    this.thrust = 0; // Thrust takes time to build up
+    this.thrustPickupTimer = ThrustPickup;
+    for (;;) {
+      const dt = state.dt; const sdt = dt / 1000;
+      if ((this.thrusterCounter -= dt) <= 0) {
+        this.thrusterCounter = randomInt(50, 100);
+        this.Thruster.object3D.visible = !this.Thruster.object3D.visible;
+      }
+      if (this.thrustPickupTimer > 0) {
+        this.thrustPickupTimer -= sdt;
+        this.thrust = Math.min(Thrust, this.thrust + ThrustPickupAcc * sdt);
+      }
+      if (this.velocity.lengthSq() < maxSpeedSq) {
+        this.vThrust.copy(this.zAxis).applyQuaternion(this.el.object3D.quaternion).multiplyScalar(this.thrust * sdt);
+        this.velocity.add(this.vThrust);
+        if (this.velocity.lengthSq() > maxSpeedSq)
+          this.velocity.setLength(MaxSpeed);
+      }
+      yield;
     }
-    this.thrust.copy(this.zAxis).applyQuaternion(this.el.object3D.quaternion).multiplyScalar(Thrust * dt / 1000);
-    this.velocity.add(this.thrust);
-    if (this.velocity.length() > MaxSpeed)
-      this.velocity.normalize().multiplyScalar(MaxSpeed);
-    return 'more';
   },
-  reverseThruster(tm, dt) {
-    const speed = this.velocity.length();
-    if (speed < 0.001) {
-      this.velocity.setLength(0);
-      this.travelProcess.stop();
-      return; // Stop the reverse thruster
+  * reverseThruster(state) {
+    this.thrust = 0; // Reverse thrust takes time to build up
+    this.thrustPickupTimer = ReverseThrustPickup;
+    for (;;) {
+      const dt = state.dt; const sdt = dt / 1000;
+      const speed = this.velocity.length();
+      if (speed < 0.0005) {
+        this.velocity.setLength(0);
+        this.travelProcess.stop();
+        return; // Stop the reverse thruster
+      }
+      if (this.thrustPickupTimer > 0) {
+        this.thrustPickupTimer -= sdt;
+        this.thrust = Math.min(ReverseThrust, this.thrust + ReverseThrustPickupAcc * sdt);
+      }
+      const decel = this.thrust * sdt;
+      // Slowly degrade our speed if deceleration exceeds the speed.
+      this.velocity.setLength(decel > speed ? speed / 2 : speed - decel);
+      yield;
     }
-    const accel = ReverseThrust * dt / 1000;
-    // Slowly degrade our speed if acceleration exceeds the speed.
-    this.velocity.setLength(accel > speed ? speed / 2 : speed - accel);
-    return 'more';
   },
 
   tracker(tm, dt) {
     this.quat.copy(this.el.object3D.quaternion);
-    this.Touch.object3D.getWorldPosition(this.vTouch);
-    this.el.object3D.lookAt(this.vTouch);
-    this.qTouch.copy(this.el.object3D.quaternion);
+    this.GamePointer.object3D.getWorldPosition(this.vGamePtr);
+    this.el.object3D.lookAt(this.vGamePtr);
+    this.qGamePtr.copy(this.el.object3D.quaternion);
     this.el.object3D.quaternion.copy(this.quat);
-    this.el.object3D.quaternion.rotateTowards(this.qTouch, TouchAngularRotation * dt / 1000);
+    this.el.object3D.quaternion.rotateTowards(this.qGamePtr, TouchAngularRotation * dt / 1000);
     return 'more';
   },
 

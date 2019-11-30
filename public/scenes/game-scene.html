@@ -1,7 +1,7 @@
 <a-scene id="scene" gamma="true">
 
   <a-entity id="GameState"  gamestate="state:Loading; states:Loading,MainMenu,Newgame,Nextlevel,Playing,Endlevel,Endgame,Pause,Recenter"
-    keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,wasd:F9,Test:-any" ctrlmap="Pause:stick, Pause:pad">
+    keymap="Pause:F12,VRToggle:F11,Menu:F10,Cursor:F6,wasd:F9,Test:-any" ctrlmap="Pause:stick">
   </a-entity>
 
   <a-entity id="DataGroups">
@@ -179,11 +179,9 @@
              multiple spheres of same radius and position. grid is used for low opacity outer front face.
              The following spheres are children of PlaySpace and will therefore rotate with the playspace -->
         <a-entity geometry="primitive:sphere; radius:0.30;"
-        material="shader:flat; src:#grid-legs; repeat:30 15; transparent:true; opacity: 0.25; alphaTest: 0.10"
-        position="0 0 0"></a-entity>
-        <a-entity geometry="primitive:sphere; radius:0.301;"
-        material="shader:flat; src:#grid; repeat:30 15; transparent:true; opacity: 0.15; alphaTest: 0.10"
-        position="0 0 0"></a-entity>
+        material="shader:flat; src:#grid-legs; repeat:30 15; transparent:true; opacity: 0.25; alphaTest: 0.10"></a-entity>
+        <!-- <a-entity geometry="primitive:sphere; radius:0.301;" -->
+        <!-- material="shader:flat; src:#grid; repeat:30 15; transparent:true; opacity: 0.15; alphaTest: 0.10"></a-entity> -->
 
         <a-entity id="SpaceShip" position="0 0 0" scale="0.30 0.30 0.30"
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
@@ -217,7 +215,7 @@
   <!-- wasd-controls="adAxis:z;wsAxis:y" have taken this out as now support keyboard recentering 
   recenter="offset: 0, 1.1, -0.2" -->
   <a-entity id="player" position="0 0 1.000" recenter="offset: 0 1.50 0.50"
-    ctrlmap="xy:rightstick,xy:rightpad,zin:b,zin:y,zout:a,zout:x,zinout:leftpad,zinout:leftstick, reset:stick, reset:pad" visible="false">
+    ctrlmap="xy:rightstick,xy:rightpad,zin:a,zin:x,zout:b,zout:y,zinout:leftpad,zinout:leftstick, reset:stick, reset:menu" visible="false">
     <a-entity id="player-camera" position="0 1.4 0.0" camera="active:true" look-controls wasd-controls="enabled:false">
       <a-entity id="cursor" cursor="fuseTimeout: 500; rayOrigin: mouse" position="0 0 -0.1"
         raycaster="objects: .cursor-none; interval: 0; enabled: false"
@@ -226,10 +224,11 @@
         keymap="|MotionKeys:recenter| Recenter:r, Trigger:Space, Trigger:Enter" visible="false">
       </a-entity>
     </a-entity>
-    <a-entity id="leftHand" controller="hand:left;touch:pointer" ctrlmap="recenter:leftgrip" visible="false">
+    <a-entity id="leftHand" controller="hand:left;touch:pointer" ctrlmap="recenter:leftgrip">
     </a-entity>
-    <a-entity id="rightHand" controller="hand:right;touch:pointer" ctrlmap="recenter:rightgrip" visible="false">
+    <a-entity id="rightHand" controller="hand:right;touch:pointer" ctrlmap="recenter:rightgrip">
     </a-entity>
+    <a-mientity id="gamePointer" dg="pointer" visible="false"></a-mientity>
   </a-entity>
 
   <a-sky src="#galaxy" radius="5000" position="0 2500 0"></a-sky>

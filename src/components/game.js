@@ -1,9 +1,13 @@
+/* global THREE */
+
 import aframe from 'aframe';
 import { bindEvent } from "aframe-event-decorators";
+import { hasOwnProperty } from "@micosmo/core/object";
 import { methodNameBuilder } from '@micosmo/core/method';
 import { createSchemaPersistentObject } from '@micosmo/aframe/lib/utils';
 import { LazyPromise } from '@micosmo/async/promise';
 import { onLoadedDo } from '@micosmo/aframe/startup';
+import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 aframe.registerComponent("game", {
   schema: {
@@ -13,7 +17,13 @@ aframe.registerComponent("game", {
     initialiseLevels();
     this.state = this.data._state;
     this.state.level = 0;
+    this.gamePlaying = false;
     const sceneEl = this.el.sceneEl;
+    this.Player = sceneEl.querySelector('#player');
+    this.LeftHand = sceneEl.querySelector('#leftHand');
+    this.RightHand = sceneEl.querySelector('#rightHand');
+    this.GamePointer = sceneEl.querySelector("#gamePointer");
+    this.GameController = this.RightHand;
     this.PlaySpace = sceneEl.querySelector('#PlaySpace');
     this.SpaceShip = sceneEl.querySelector('#SpaceShip');
     this.Asteroids = sceneEl.querySelector('#Asteroids');
@@ -22,7 +32,11 @@ aframe.registerComponent("game", {
     this.fCollisionStart = methodNameBuilder('collisionstart_%1_%2', /%1/, /%2/);
     this.fCollisionEnd = methodNameBuilder('collisionend_%1_%2', /%1/, /%2/);
 
+    this.gamePointerProcess = ticker.createProcess(this.touchTracker.bind(this), this.el);
+    this.v1 = new THREE.Vector3();
+
     onLoadedDo(() => {
+      this.TouchPointer = this.GameController.components.controller.Touch;
       this.compAsteroids = this.Asteroids.components.asteroids;
       this.compUfos = this.Ufos.components.ufos;
       this.compSpaceShip = this.SpaceShip.components.spaceship;
@@ -74,6 +88,26 @@ aframe.registerComponent("game", {
     this.el.sceneEl.components.states.chain('Playing');
   },
 
+  'enter-vr': bindEvent({ target: 'a-scene' }, function (evt) { if (this.gamePlaying) enablePointer(this) }),
+  'exit-vr': bindEvent({ target: 'a-scene' }, function (evt) { if (this.gamePlaying) disablePointer(this) }),
+
+  play() {
+    this.gamePlaying = true;
+    enablePointer(this);
+  },
+  pause() {
+    disablePointer(this);
+    this.gamePlaying = false;
+  },
+
+  touchTracker() {
+    this.v1.copy(this.TouchPointer.object3D.position).applyQuaternion(this.GameController.object3D.quaternion);
+    this.GamePointer.object3D.position.copy(this.GameController.object3D.position);
+    this.GamePointer.object3D.quaternion.copy(this.GameController.object3D.quaternion);
+    this.GamePointer.object3D.position.add(this.v1);
+    return 'more';
+  },
+
   collisionstart: bindEvent(function (evt) {
     this[this.fCollisionStart(evt.detail.layer1, evt.detail.layer2)](evt.detail.el1, evt.detail.el2);
   }),
@@ -121,65 +155,55 @@ aframe.registerComponent("game", {
   }
 });
 
-var Levels = {
-  1: {
-    asteroids: { count: 2, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 1 }, small: { }, tiny: {} },
-    ufos: { count: 0, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 0.25, large: { }, small: { } }
-  },
-  2: {
-    asteroids: { count: 2, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 1 }, small: {}, tiny: { count: 3 } },
-    ufos: { count: 0, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 0.25, large: {}, small: {} }
-  },
-  3: {
-    asteroids: { count: 2, speed: 0.125, rotation: 0.25, hits: 1, large: { count: 1 }, small: {}, tiny: { count: 3 } },
-    ufos: { count: 1, speed: 0.25, timing: 20, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 0.25, large: { count: 1 }, small: { } }
-  },
+function enablePointer(self) {
+  if (self.GameController.components.controller.controllerPresent) {
+    self.LeftHand.setAttribute('controller', 'visible', false);
+    self.RightHand.setAttribute('controller', 'visible', false);
+    self.GamePointer.object3D.visible = true;
+    self.gamePointerProcess.restart();
+  }
 }
 
-const LevelSpeedFactor = 1.5;
-const LevelRotationFactor = 1.5;
-const LevelAccuracyFactor = 1.5;
+function disablePointer(self) {
+  if (self.GamePointer.object3D.visible) {
+    self.LeftHand.setAttribute('controller', 'visible', true);
+    self.RightHand.setAttribute('controller', 'visible', true);
+    self.GamePointer.object3D.visible = false;
+    self.gamePointerProcess.stop();
+  }
+}
+
+// Level 0 sets the defaults that trickle down, i.e. Level n-1 inherits from Level n
+var Levels = {
+  0: {
+    asteroids: {
+      large: { count: 1, speed: 0.025, rotation: 45, hits: 1 },
+      small: { count: 2, speed: 0.0375, rotation: 67.5, hits: 1 },
+      tiny: { count: 2, speed: 0.050, rotation: 90, hits: 1 } },
+    ufos: {
+      large: { count: 0, speed: 0.10, timing: 5, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 0.10 },
+      small: { count: 0, speed: 0.12, timing: 5, accuracy: 0.10, hits: 1, shots: 1, shotSpeed: 0.10 }
+    }
+  },
+  1: { asteroids: { large: {}, small: {}, tiny: {} }, ufos: { large: { }, small: { } } },
+  2: { asteroids: { large: { count: 2 }, small: {}, tiny: {} }, ufos: { large: {}, small: {} } },
+  3: { asteroids: { large: {}, small: {}, tiny: { count: 3 } }, ufos: { large: { count: 1 }, small: { count: 1 } } },
+}
 
 function initialiseLevels() {
-  for (let i = 1; ; i = i + 1) {
-    if (!Levels[i]) return;
-    const ast = Levels[i].asteroids; const ufo = Levels[i].ufos;
-
-    if (ast.large.count === undefined) ast.large.count = ast.count;
-    if (ast.small.count === undefined) ast.small.count = ast.count;
-    if (ast.tiny.count === undefined) ast.tiny.count = ast.count;
-
-    if (ast.large.speed === undefined) ast.large.speed = ast.speed;
-    if (ast.small.speed === undefined) ast.small.speed = ast.speed * LevelSpeedFactor;
-    if (ast.tiny.speed === undefined) ast.tiny.speed = ast.speed * 2 * LevelSpeedFactor;
-
-    if (ast.large.rotation === undefined) ast.large.rotation = ast.rotation;
-    if (ast.small.rotation === undefined) ast.small.rotation = ast.rotation * LevelRotationFactor;
-    if (ast.tiny.rotation === undefined) ast.tiny.rotation = ast.rotation * LevelRotationFactor * 2;
-
-    if (ast.large.hits === undefined) ast.large.hits = ast.hits;
-    if (ast.small.hits === undefined) ast.small.hits = ast.hits;
-    if (ast.tiny.hits === undefined) ast.tiny.hits = ast.hits;
-
-    if (ufo.large.count === undefined) ufo.large.count = ufo.count;
-    if (ufo.small.count === undefined) ufo.small.count = ufo.count;
-
-    if (ufo.large.speed === undefined) ufo.large.speed = ufo.speed;
-    if (ufo.small.speed === undefined) ufo.small.speed = ufo.speed * LevelSpeedFactor;
-
-    if (ufo.large.timing === undefined) ufo.large.timing = ufo.timing;
-    if (ufo.small.timing === undefined) ufo.small.timing = ufo.timing;
-
-    if (ufo.large.accuracy === undefined) ufo.large.accuracy = ufo.accuracy;
-    if (ufo.small.accuracy === undefined) ufo.small.accuracy = ufo.accuracy * LevelAccuracyFactor;
-
-    if (ufo.large.hits === undefined) ufo.large.hits = ufo.hits;
-    if (ufo.small.hits === undefined) ufo.small.hits = ufo.hits;
-
-    if (ufo.large.shots === undefined) ufo.large.shots = ufo.shots;
-    if (ufo.small.shots === undefined) ufo.small.shots = ufo.shots;
-
-    if (ufo.large.shotSpeed === undefined) ufo.large.shotSpeed = ufo.shotSpeed;
-    if (ufo.small.shotSpeed === undefined) ufo.small.shotSpeed = ufo.shotSpeed * LevelSpeedFactor;
+  // Fill out the level data by inheriting missing values from the previous. Level 0 contains all defaults
+  for (let i = 1; hasOwnProperty(Levels, i); i++) {
+    const level = Levels[i];
+    for (var classType in level) {
+      const cls = level[classType];
+      for (var classSize in cls) {
+        const clsSize = cls[classSize];
+        const prevSize = Levels[i - 1][classType][classSize]; // Data to inherit from
+        for (var prop in prevSize) {
+          if (!hasOwnProperty(clsSize, prop))
+            clsSize[prop] = prevSize[prop];
+        }
+      }
+    }
   }
 }

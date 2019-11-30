@@ -2,7 +2,7 @@ import aframe from "aframe";
 import { bindEvent } from "aframe-event-decorators";
 import { requestObject, returnObject, removeIndex } from "@micosmo/core/object";
 import { onLoadedDo, afterLoadedDo } from "@micosmo/aframe/startup";
-import { startProcess } from "@micosmo/ticker/aframe-ticker";
+import { createProcess } from "@micosmo/ticker/aframe-ticker";
 import { instantiateDatagroup } from '@micosmo/aframe/lib/utils';
 
 export const ControlMap = getControlMap();
@@ -11,6 +11,7 @@ export const ControllerMap = getControllerMap();
 aframe.registerComponent("controller", {
   schema: {
     hand: { default: "left" },
+    visible: { default: true }, // Defines if the controller model should be displayed when the controller is present
     touch: { default: '' } // Datagroup that describes how a controller can touch elements in the scene.
   },
   init() {
@@ -20,7 +21,10 @@ aframe.registerComponent("controller", {
     this.controllerPresent = false;
     this.ready = false;
     if (this.Recenter) {
-      onLoadedDo(() => { this.compRecenter = this.Recenter.components.recenter });
+      onLoadedDo(() => {
+        this.compRecenter = this.Recenter.components.recenter;
+        this.recenterProcess = createProcess(() => { this.compRecenter.around(this.el); return 'more' })
+      });
       this.system.tryAddListeners(this);
     }
     afterLoadedDo(() => {
@@ -30,9 +34,9 @@ aframe.registerComponent("controller", {
     });
   },
   update(oldData) {
-    if (this.ready)
-      throw new Error(`micosmo:component:controller:update: Updates are not supported`);
     if (oldData.hand !== this.data.hand) {
+      if (this.ready)
+        throw new Error(`micosmo:component:controller:update: Updates to controller configuration not supported`);
       const el = this.el;
       // Get common configuration to abstract different vendor controls.
       const controlConfiguration = { hand: this.data.hand, model: true };
@@ -42,6 +46,9 @@ aframe.registerComponent("controller", {
       el.setAttribute('tracked-controls', 'autoHide', false);
       this.system.addController(this);
     }
+    if (oldData.visible !== this.data.visible && this.controllerPresent)
+      this.el.object3D.visible = this.data.visible;
+
     if (oldData.touch !== this.data.touch) {
       if (this.Touch)
         this.el.removeChild(this.Touch);
@@ -56,7 +63,7 @@ aframe.registerComponent("controller", {
   controllerconnected: bindEvent(function (evt) {
     console.info(`micosmo:component:controller: ${this.data.hand} controller connected`);
     if (this.el.sceneEl.is('vr-mode'))
-      this.el.object3D.visible = true;
+      this.el.object3D.visible = this.data.visible;
     this.controllerPresent = true;
     this.system.addAttachedController(this);
     if (this.ready)
@@ -74,7 +81,7 @@ aframe.registerComponent("controller", {
     if (!this.controllerPresent)
       return;
     if (!this.el.object3D.visible)
-      this.el.object3D.visible = true;
+      this.el.object3D.visible = this.data.visible;
   }),
   'exit-vr': bindEvent({ target: 'a-scene' }, function (evt) {
     if (!this.controllerPresent)
@@ -86,7 +93,7 @@ aframe.registerComponent("controller", {
   recenter_down() {
     this.compRecenter.start();
     this.el.sceneEl.emit('startrecenter', undefined, false);
-    this.recenterProcess = startProcess(() => { this.compRecenter.around(this.el); return 'more' })
+    this.recenterProcess.start();
     return true;
   },
   recenter_up() {

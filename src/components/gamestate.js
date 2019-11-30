@@ -2,7 +2,7 @@
 import aframe from 'aframe';
 import { bindEvent } from 'aframe-event-decorators';
 // import { startProcess, msWaiter } from '@micosmo/ticker/aframe-ticker';
-import { onLoadedDo } from '@micosmo/aframe/startup';
+import { onLoadedDo, afterLoadedDo } from '@micosmo/aframe/startup';
 import { noVisibilityChecks as noKeyboardVisibilityChecks } from '@micosmo/aframe/keyboard';
 // import { timeToIntercept } from '../lib/targeting';
 
@@ -32,7 +32,7 @@ aframe.registerComponent('gamestate', {
     this.Game = scene.querySelector('#Game');
     this.Env1 = scene.querySelector('#env-1');
     this.Player = scene.querySelector('#player');
-    this.SpaceShip = scene.querySelector('#SpaceShip');
+    this.Cursor = scene.querySelector('#cursor');
     this.Hlc = scene.querySelector('[headless-controller]');
     this.Cursor = scene.querySelector('#cursor');
     this.WasdControls = scene.querySelector('[wasd-controls]');
@@ -89,7 +89,7 @@ aframe.registerComponent('gamestate', {
 
   'enter-vr': bindEvent({ target: 'a-scene' }, function (evt) {
     this.inVRMode = true;
-    onLoadedDo(() => { this.compHeadless.toggleCursor(false) });
+    afterLoadedDo(() => { this.compHeadless.toggleCursor(false) });
   }),
   'exit-vr': bindEvent({ target: 'a-scene' }, function (evt) {
     this.inVRMode = false;
