@@ -269,7 +269,7 @@ function shotTraveller(self, ufo, sdt) {
   const ssPos = self.SpaceShip.object3D.position;
   const ssVel = self.SpaceShip.components.spaceship.velocity;
   const tIntercept = timeToIntercept(ufo.object3D.position, game.velocity, ssPos, ssVel, game.shot.speed);
-  if (tIntercept === undefined || !ufo.object3D.visible) {
+  if (tIntercept === undefined || !ufo.object3D.visible || !self.SpaceShip.object3D.visible) {
     // Cannot intercept, so will need to try again.
     nextShotInterval(self, ufo);
     return;

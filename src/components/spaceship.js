@@ -12,7 +12,7 @@ const KeyPitchYawFactor = 6;
 const MaxSpeedPickup = 7.5; // s
 const ThrustPickup = 0.50; // s
 const MaxSpeed = 0.30; // m/s
-// ThrustPickupAcc is used to build up to Thrust so we can satisfy the following expression to determine ThrustPickupAcc.
+// ThrustPickupAcc is used to build up to Thrust, so we can satisfy the following expression to determine ThrustPickupAcc.
 //    MaxSpeed = 1/2 * ThrustPickupAcc * ThrustPickup^2 + Thrust * (MaxSpeedPickup - ThrustPickup).
 // Note: That '1/2 * ThrustPickupAcc * ThrustPickup^2' will give us a velocity at the end of the ThrustPickup interval.
 const ThrustPickupAcc = MaxSpeed / (0.5 * ThrustPickup * ThrustPickup + (MaxSpeedPickup - ThrustPickup) * ThrustPickup);
@@ -24,6 +24,10 @@ const GattlerRoundSpeed = MaxSpeed * 2;
 const GattlerRoundAdjustment = 0.00525;
 const GattlerRounds = 3;
 const TouchAngularRotation = THREE.Math.degToRad(180); // Degrees / s
+
+const HyperspaceCooldownInterval = 5000;
+const MinHyperspaceInterval = 500;
+const MaxHyperspaceInterval = 2000;
 
 aframe.registerComponent("spaceship", {
   schema: {
@@ -44,6 +48,7 @@ aframe.registerComponent("spaceship", {
     this.velocity = new THREE.Vector3();
     this.thrusterCounter = 0;
     this.gattlerRounds = [];
+    this.hyperspaceDriveReady = true;
 
     this.trackerProcess = ticker.createProcess(this.tracker.bind(this), this.el);
     this.thrustProcess = ticker.createProcess(this.thruster.bind(this), this.el);
@@ -52,6 +57,8 @@ aframe.registerComponent("spaceship", {
     this.gattlerProcess = ticker.createProcess(this.gattler.bind(this), this.el);
     this.gattlerWaiter = ticker.msWaiter(1000 / GattlerRounds);
     this.gattlerRoundsProcess = ticker.createProcess(this.gattlerRoundsTraveller.bind(this), this.el);
+    this.hyperspaceProcess = ticker.createProcess(this.hyperspacer.bind(this), this.el);
+    this.hyperspaceCooldownProcess = ticker.createProcess(this.hyperspaceCooldown.bind(this), this.el)
 
     onLoadedDo(() => {
       const sceneEl = this.el.sceneEl;
@@ -170,6 +177,28 @@ aframe.registerComponent("spaceship", {
       this.velocity.setLength(decel > speed ? speed / 2 : speed - decel);
       yield;
     }
+  },
+  hyperspace_down() { if (this.hyperspaceDriveReady) this.hyperspaceProcess.start() },
+  keydown_hyperspace() { if (this.hyperspaceDriveReady) this.hyperspaceProcess.start() },
+  * hyperspacer(state) {
+    this.reverseThrustProcess.stop();
+    this.thrustProcess.stop()
+    this.travelProcess.stop();
+    this.velocity.setLength(0);
+    this.hyperspaceDriveReady = false;
+    this.el.object3D.visible = false;
+    yield ticker.msWaiter(Math.random() * (MaxHyperspaceInterval - MinHyperspaceInterval) + MinHyperspaceInterval);
+    // Reappear at a random location in the play sphere
+    const len = Math.random() * this.playspaceRadius * 0.90; // Don't appear to close to edge of playspace
+    const x = Math.random() * 2 - 1; const y = Math.random() * 2 - 1; const z = Math.random() * 2 - 1;
+    console.log(len, x, y, z);
+    this.el.object3D.position.set(x, y, z).setLength(len);
+    this.el.object3D.visible = true;
+    this.hyperspaceCooldownProcess.start();
+  },
+  * hyperspaceCooldown(state) {
+    yield ticker.msWaiter(HyperspaceCooldownInterval);
+    this.hyperspaceDriveReady = true;
   },
 
   tracker(tm, dt) {

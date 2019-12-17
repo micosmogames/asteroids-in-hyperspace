@@ -180,13 +180,13 @@
              The following spheres are children of PlaySpace and will therefore rotate with the playspace -->
         <a-entity geometry="primitive:sphere; radius:0.30;"
         material="shader:flat; src:#grid-legs; repeat:30 15; transparent:true; opacity: 0.25; alphaTest: 0.10"></a-entity>
-        <!-- <a-entity geometry="primitive:sphere; radius:0.301;" -->
-        <!-- material="shader:flat; src:#grid; repeat:30 15; transparent:true; opacity: 0.15; alphaTest: 0.10"></a-entity> -->
+        <!-- <a-entity geometry="primitive:sphere; radius:0.301;"
+        material="shader:flat; src:#grid; repeat:30 15; transparent:true; opacity: 0.15; alphaTest: 0.10"></a-entity> -->
 
         <a-entity id="SpaceShip" position="0 0 0" scale="0.30 0.30 0.30"
           gltf-blender-part="part:player;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
           outline="color:#98FF73;thickness:-0.002;filter:name=player" spaceship="lives: 10"
-          ctrlmap="thrust:ltrig, rightTrigger:rtrig" keymap="|MotionKeys:shiprotate| thrust:+"
+          ctrlmap="thrust:ltrig, rightTrigger:rtrig, hyperspace:menu, hyperspace:a, hyperspace:x" keymap="|MotionKeys:shiprotate| thrust:+, hyperspace:h"
           mi__collider="|defaults:|layer:spaceship;collidesWith:ufo,asteroid;radius:0.015;policy:init">
           <a-entity id="Thruster" position="0.001 0 0" scale="1.5 1.5 1.5"
             gltf-blender-part="part:flame;src:#models-gltf;findMesh:true" material="shader:flat;color:black"
@@ -198,6 +198,16 @@
         <a-entity id="Asteroids" asteroids></a-entity>
         <a-entity id="Ufos" ufos></a-entity>
 
+        <!-- <a-entity id="scoreText"
+        text__score="color:#ffffff;value:0;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double"
+        position="0.716 0.447 -0.175" scale="1.991 1.991 1.991" visible="">
+        </a-entity>
+  
+      <a-entity id="levelText"
+        text__level="align:right;color:#ffffff;value:L1;font:./assets/font/8bit-msdf.json;fontImage:./assets/font/8bit.png;negate:false;side:double"
+        position="-0.634 0.447 -0.175" scale="1.991 1.991 1.991">
+      </a-entity> -->
+  
       </a-entity>
     </a-entity>
 
