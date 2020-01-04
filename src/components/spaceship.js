@@ -100,6 +100,9 @@ aframe.registerComponent("spaceship", {
     this.el.object3D.position.set(0, 0, 0); // Initial position
     this.el.object3D.quaternion.set(0, 0, 0, 1); // Initial rotation
   },
+  endGame() {
+    this.reset();
+  },
   startLevel() {
     this.reset();
   },
@@ -239,6 +242,11 @@ aframe.registerComponent("spaceship", {
   rightTrigger_up() { this.gattlerProcess.stop(); return true },
   triggerDown: bindEvent(function (evt) {
     const el = evt.detail.triggerEl;
+    // Forward event onto target if it is not a Spaceship target
+    if (!el.getAttribute('trigger-target')) {
+      el.emit('triggerDown', evt.detail, false);
+      return true;
+    }
     const dist = this.v1.copy(el.object3D.position).sub(this.el.object3D.position).length();
     const travelTime = dist / GattlerRoundSpeed;
     el.object3D.getWorldPosition(this.v1).addScaledVector(el.__game.velocity, travelTime);
@@ -246,7 +254,16 @@ aframe.registerComponent("spaceship", {
     this.gattlerProcess.restart();
     return true;
   }),
-  triggerUp: bindEvent(function () { this.gattlerProcess.stop(); return true }),
+  triggerUp: bindEvent(function (evt) {
+    const el = evt.detail.triggerEl;
+    // Forward event onto target if it is not a Spaceship target
+    if (!el.getAttribute('trigger-target')) {
+      el.emit('triggerUp', evt.detail, false);
+      return true;
+    }
+    this.gattlerProcess.stop();
+    return true;
+  }),
   * gattler() {
     for (; ;) {
       fireGattlerRound(this);

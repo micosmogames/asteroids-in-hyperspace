@@ -3,6 +3,7 @@
 import aframe from 'aframe';
 import { onLoadedDo } from '@micosmo/aframe/startup';
 import { removeIndex, removeValue } from '@micosmo/core/object';
+import { randomiseVector } from '@micosmo/aframe/lib/utils';
 import { timeToIntercept } from '../lib/targeting';
 import * as ticker from "@micosmo/ticker/aframe-ticker";
 
@@ -15,7 +16,7 @@ aframe.registerComponent("ufos", {
   schema: { default: '' },
   init() {
     this.PlaySpace = this.el.sceneEl.querySelector('#PlaySpace');
-    this.SpaceShip = this.el.sceneEl.querySelector('#SpaceShip');
+    this.Spaceship = this.el.sceneEl.querySelector('#Spaceship');
 
     this.thrust = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
@@ -32,7 +33,7 @@ aframe.registerComponent("ufos", {
       };
       this.shotPool = this.el.sceneEl.querySelector('#Pools').components.mipool__shooter;
       this.playspaceRadius = this.el.sceneEl.querySelector('#PlaySpace').components.geometry.data.radius;
-      this.ssRadius = this.SpaceShip.components.collider.getScaledRadius();
+      this.ssRadius = this.Spaceship.components.collider.getScaledRadius();
     });
 
     this.quat = new THREE.Quaternion();
@@ -66,6 +67,7 @@ aframe.registerComponent("ufos", {
   },
 
   newGame() { this.reset() },
+  endGame() { this.reset() },
   startLevel(cfg) {
     this.launchCfg = cfg;
     this.launchProcess.start();
@@ -81,9 +83,9 @@ aframe.registerComponent("ufos", {
   * launcher(state) {
     const cfg = this.launchCfg;
     for (var pool of Pools) {
-      const time = cfg[pool].timing / 2;
+      const time = cfg.interval * cfg[pool].iFac / 2;
       for (let i = cfg[pool].count; i > 0; i--) {
-        const waitTime = Math.random() * time + time; // Random time in seconds between timing & timing / 2.
+        const waitTime = Math.random() * time + time; // Random time in seconds between interval & interval / 2.
         yield ticker.sWaiter(waitTime);
         startUfo(this, cfg[pool], pool);
       }
@@ -228,13 +230,13 @@ function initUfo(self, el, cfg, pool) {
   };
   const game = el.__game;
   game.id = ++IdUfo;
-  game.speed = cfg.speed;
+  game.speed = cfg.class.speed * cfg.sFac; // Class has base speed and config has factor.
   game.radius = el.components.collider.getScaledRadius();
   self.v3.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(self.playspaceRadius * 2);
   game.targetVector.copy(el.object3D.position).add(self.v3);
   game.velocity.copy(self.v3).setLength(game.speed);
   game.hits = cfg.hits;
-  game.accuracy = cfg.accuracy;
+  game.accuracy = cfg.class.accuracy * cfg.aFac;
   game.rotationAxis = self.yAxis;
   game.angularSpeed = RotationSpeed;
   //  game.directionalSpeed = DirectionalSpeed * game.speed;
@@ -242,7 +244,7 @@ function initUfo(self, el, cfg, pool) {
   game.mass = Mass[pool];
   game.obstacles.length = 0;
   game.shot.count = game.shot.clip = cfg.shots;
-  game.shot.speed = cfg.shotSpeed + game.speed; // Make sure that we have + velocity from rear shot
+  game.shot.speed = cfg.class.shotSpeed * cfg.ssFac + game.speed; // Make sure that we have + velocity from rear shot
   return nextShotInterval(self, el);
 }
 
@@ -264,12 +266,12 @@ function shotTraveller(self, ufo, sdt) {
       destroyShot(self, ufo, game.shot.el);
     return;
   }
+  // Run down the shot interval until next shot can be fired, then wait for timer interval to be reset.
   if (game.shot.interval <= 0 || (game.shot.interval -= sdt) > 0) return;
   // Fire a shot at the spaceship, applying the accuracy factor.
-  const ssPos = self.SpaceShip.object3D.position;
-  const ssVel = self.SpaceShip.components.spaceship.velocity;
-  const tIntercept = timeToIntercept(ufo.object3D.position, game.velocity, ssPos, ssVel, game.shot.speed);
-  if (tIntercept === undefined || !ufo.object3D.visible || !self.SpaceShip.object3D.visible) {
+  const ssPos = self.Spaceship.object3D.position;
+  const ssVel = self.Spaceship.components.spaceship.velocity;
+  if (!ufo.object3D.visible || !self.Spaceship.object3D.visible) {
     // Cannot intercept, so will need to try again.
     nextShotInterval(self, ufo);
     return;
@@ -283,25 +285,29 @@ function shotTraveller(self, ufo, sdt) {
   if (!shot.__game) shot.__game = { ufo: undefined };
   shot.__game.ufo = ufo;
   game.shot.el = shot;
-  self.v2.copy(ssVel);
-  if (self.v2.length() === 0)
-    self.v2.copy(self.zAxis).applyQuaternion(self.SpaceShip.object3D.quaternion).setLength(0.0001);
-  self.v2.multiplyScalar(tIntercept); // Target adjustment
-  var speed = self.v1.copy(ssPos).add(self.v2).sub(ufo.object3D.position).add(game.velocity).length() / tIntercept; // True speed
-  if (game.accuracy < 1) {
-    // Adjust the intercept time to allow for accurracy.
-    const spread = self.ssRadius / game.accuracy; // Behind or ahead.
-    let accAdjust = (Math.random() * 2 - 1) * spread;
-    if (Math.abs(accAdjust) > self.ssRadius)
-      accAdjust *= 5; // Broaden the spread for a miss.
-    self.v2.setLength(self.v2.length() + accAdjust); // Adjust intercept position
+
+  var tIntercept; var speed;
+  if (Math.random() > game.accuracy ||
+    !(tIntercept = timeToIntercept(ufo.object3D.position, game.velocity, ssPos, ssVel, game.shot.speed))) {
+    // Inaccurate or cannot intercept Spaceship so take a random shot.
+    randomiseVector(self.v1, self.playspaceRadius);
+    self.PlaySpace.object3D.getWorldPosition(self.v3).add(self.v1);
+    tIntercept = ufo.object3D.position.distanceTo(self.v1) / game.shot.speed;
+    speed = self.v2.copy(self.v1).sub(ufo.object3D.position).setLength(game.shot.speed).add(game.velocity).length() / tIntercept;
+  } else {
+    self.v2.copy(ssVel);
+    if (self.v2.length() === 0)
+      self.v2.copy(self.zAxis).applyQuaternion(self.Spaceship.object3D.quaternion).setLength(0.0001);
+    self.v2.multiplyScalar(tIntercept); // Target adjustment
+    speed = self.v1.copy(ssPos).add(self.v2).sub(ufo.object3D.position).setLength(game.shot.speed).add(game.velocity).length() / tIntercept; // True speed
+    self.v1.copy(ssPos).add(self.v2);
+    self.Spaceship.object3D.getWorldPosition(self.v3).add(self.v2);
   }
-  self.v1.copy(ssPos).add(self.v2); // Actual target position allowing for accuracy
   game.shot.velocity.copy(self.v1).sub(ufo.object3D.position); // Shot direction and distance
   // Align the direction of the shot to the target direction, will need to flip the shot around
   // as is facing in a -z direction.
   shot.object3D.position.copy(ufo.object3D.position);
-  shot.object3D.lookAt(self.SpaceShip.object3D.getWorldPosition(self.v3).add(self.v2));
+  shot.object3D.lookAt(self.v3);
   self.axis.copy(self.yAxis).applyQuaternion(shot.object3D.quaternion);
   shot.object3D.applyQuaternion(self.quat.setFromAxisAngle(self.axis, Math.PI));
   // Position the shot on the radius of the ufo. Will make a slight adjustment to speed.
@@ -316,12 +322,4 @@ function destroyShot(self, ufo, shot) {
   ufo.__game.shot.el = undefined;
   ufo.__game.shot.count--;
   return nextShotInterval(self, ufo);
-}
-
-function randomiseVector(v, length) {
-  v.setX(Math.random() * 2 - 1);
-  v.setY(Math.random() * 2 - 1);
-  v.setZ(Math.random() * 2 - 1);
-  v.normalize().setLength(length);
-  return v;
 }

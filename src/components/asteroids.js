@@ -3,6 +3,8 @@
 import aframe from 'aframe';
 import { onLoadedDo } from '@micosmo/aframe/startup';
 import { removeIndex } from '@micosmo/core/object';
+import { timeToIntercept } from '../lib/targeting';
+import { randomiseVector } from '@micosmo/aframe/lib/utils';
 import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 const Mass = { large: 4, small: 2, tiny: 1 };
@@ -11,10 +13,8 @@ aframe.registerComponent("asteroids", {
   schema: { default: '' },
   init() {
     this.PlaySpace = this.el.sceneEl.querySelector('#PlaySpace');
+    this.Spaceship = this.el.sceneEl.querySelector('#Spaceship');
 
-    this.thrust = new THREE.Vector3();
-    this.velocity = new THREE.Vector3();
-    this.thrusterCounters = { visible: 0, invisible: 0 };
     this.asteroids = [];
     this.travelProcess = ticker.createProcess(this.traveller.bind(this), this.el);
 
@@ -26,6 +26,9 @@ aframe.registerComponent("asteroids", {
         tiny: pools.mipool__tasteroid
       };
       this.playspaceRadius = this.el.sceneEl.querySelector('#PlaySpace').components.geometry.data.radius;
+      this.spaceshipRadius = this.Spaceship.components.collider.getScaledRadius();
+      this.compGame = this.el.sceneEl.querySelector('#Game').components.game;
+      this.compSpaceship = this.Spaceship.components.spaceship;
     });
 
     this.quat = new THREE.Quaternion();
@@ -49,6 +52,7 @@ aframe.registerComponent("asteroids", {
   },
 
   newGame() { this.reset() },
+  endGame() { this.reset() },
   startLevel(cfg, lp) {
     this.cfg = cfg;
     this.travelProcess.restart();
@@ -56,32 +60,31 @@ aframe.registerComponent("asteroids", {
     const lcfg = cfg.large;
     for (let i = 0; i < lcfg.count; i++) {
       const el = this.asteroidPools.large.requestEntity();
-      randomiseVector(el.object3D.position, this.playspaceRadius - 0.01); // Random start position
-      randomiseVector(this.v1, this.playspaceRadius / 2);
-      this.PlaySpace.object3D.getWorldPosition(this.v2).add(this.v1);
-      el.object3D.lookAt(this.v2); // Random direction but facing inwards
+      randomiseVector(el.object3D.position, this.playspaceRadius - 0.001); // Random start position
       this.asteroids.push(initAsteroid(this, el, lcfg, 'large'));
+      trackSpaceship(this, el);
       el.object3D.visible = true;
       el.play();
     }
   },
 
   traveller(tm, dt) {
+    const sdt = dt / 1000;
     this.asteroids.forEach(el => {
+      const game = el.__game;
       const vPos = el.object3D.position;
-      vPos.addScaledVector(el.__game.velocity, dt / 1000);
-      el.object3D.rotateOnAxis(el.__game.rotationAxis, el.__game.angularSpeed * dt / 1000);
+      if (game.speed < game.maxSpeed && this.compGame.levelTime() > game.minSpeedInterval)
+        game.velocity.setLength(game.speed += game.acceleration * sdt); // Accelerate up to max speed
+      vPos.addScaledVector(game.velocity, sdt);
+      el.object3D.rotateOnAxis(game.rotationAxis, game.angularSpeed * sdt);
       if (!el.object3D.visible) {
-        if (vPos.length() < this.playspaceRadius - el.__game.radius / 4)
+        if (vPos.length() < this.playspaceRadius - game.radius / 4)
           el.object3D.visible = true; // Re-entering playspace
       } else if (vPos.length() >= this.playspaceRadius) {
         el.object3D.visible = false; // Leaving the playspace
         // Randomly loop back in from the other side but randomise the heading.
         vPos.setLength(this.playspaceRadius * (1 + 0.75 * Math.random())).negate();
-        randomiseVector(this.v1, this.playspaceRadius * 0.25);
-        this.PlaySpace.object3D.getWorldPosition(this.v2).add(this.v1);
-        el.object3D.lookAt(this.v2); // Random direction but facing inwards
-        el.__game.velocity.copy(this.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
+        trackSpaceship(this, el);
       }
     })
     return 'more';
@@ -111,8 +114,34 @@ aframe.registerComponent("asteroids", {
     const M2 = this.v2.copy(el2.__game.velocity).multiplyScalar(el2.__game.mass);
     el1.__game.velocity.copy(M2).divideScalar(el1.__game.mass);
     el2.__game.velocity.copy(M1).divideScalar(el2.__game.mass);
+    // Make sure speed is within time based min/max range
+    clampSpeed(this, el1); clampSpeed(this, el2);
   }
 });
+
+function trackSpaceship(self, el) {
+  const game = el.__game;
+  var tti;
+  if (Math.random() <= game.trackAccuracy &&
+      (tti = timeToIntercept(el.object3D.position, undefined, self.Spaceship.object3D.position, self.compSpaceship.velocity, game.speed))) {
+    // Have an intercept so lookat the interception point to track towards Spaceship
+    self.Spaceship.object3D.getWorldPosition(self.v2).addScaledVector(self.compSpaceship.velocity, tti);
+  } else {
+    randomiseVector(self.v1, self.playspaceRadius * 0.50); // Random direction facing inwards
+    self.PlaySpace.object3D.getWorldPosition(self.v2).add(self.v1);
+  }
+  el.object3D.lookAt(self.v2);
+  game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(game.speed);
+}
+
+function clampSpeed(self, el, speed = el.__game.velocity.length()) {
+  const game = el.__game;
+  const levelTime = self.compGame.levelTime();
+  var minSpeed = game.minSpeed;
+  if (levelTime > game.minSpeedInterval)
+    minSpeed = Math.min(game.maxSpeed, minSpeed + (levelTime - game.minSpeedInterval) * game.acceleration);
+  game.velocity.setLength(game.speed = Math.max(minSpeed, Math.min(game.maxSpeed, speed)));
+}
 
 function splitAsteroid(self, targetEl) {
   const pool = targetEl.__game.pool === 'large' ? 'small' : 'tiny'
@@ -121,10 +150,11 @@ function splitAsteroid(self, targetEl) {
     const el = self.asteroidPools[pool].requestEntity();
     if (el === undefined) return; // Asteroid pool is empty
     el.object3D.position.copy(targetEl.object3D.position);
-    randomiseVector(self.v1, self.playspaceRadius - 0.1); // Random direction
+    randomiseVector(self.v1, self.playspaceRadius); // Random direction
     self.PlaySpace.object3D.getWorldPosition(self.v2).add(self.v1);
     el.object3D.lookAt(self.v2); // Random direction facing outwards
     self.asteroids.push(initAsteroid(self, el, cfg, pool));
+    el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
     el.object3D.visible = true;
     el.play();
   }
@@ -133,22 +163,22 @@ function splitAsteroid(self, targetEl) {
 let IdAsteroid = 0;
 function initAsteroid(self, el, cfg, pool) {
   if (!el.__game) el.__game = { velocity: new THREE.Vector3(), rotationAxis: new THREE.Vector3() };
-  el.__game.id = ++IdAsteroid;
-  el.__game.radius = el.components.collider.getScaledRadius();
-  el.__game.speed = cfg.speed;
-  el.__game.velocity.copy(self.zAxis).applyQuaternion(el.object3D.quaternion).setLength(el.__game.speed);
-  el.__game.hits = cfg.hits;
-  randomiseVector(el.__game.rotationAxis, 1).normalize();
-  el.__game.angularSpeed = THREE.Math.degToRad(cfg.rotation);
-  el.__game.pool = pool;
-  el.__game.mass = Mass[pool];
-  return el;
-}
+  const game = el.__game;
+  game.id = ++IdAsteroid;
+  game.radius = el.components.collider.getScaledRadius();
+  game.trackAccuracy = cfg.class.accuracy * cfg.aFac;
 
-function randomiseVector(v, length) {
-  v.setX(Math.random() * 2 - 1);
-  v.setY(Math.random() * 2 - 1);
-  v.setZ(Math.random() * 2 - 1);
-  v.normalize().setLength(length);
-  return v;
+  game.minSpeed = cfg.class.speeds.min * cfg.sFac; // Class has base speed and config has factor.
+  game.maxSpeed = cfg.class.speeds.max * cfg.sFac; // Class has base speed and config has factor.
+  game.minSpeedInterval = cfg.class.speedIntervals.min;
+  game.acceleration = (game.maxSpeed - game.minSpeed) / cfg.class.speedIntervals.toMax;
+  // Start speed of asteroid must be commensurate with the time the level has been active.
+  clampSpeed(self, el, game.minSpeed);
+
+  game.hits = cfg.hits;
+  randomiseVector(game.rotationAxis);
+  game.angularSpeed = THREE.Math.degToRad(cfg.class.rotation * cfg.rFac);
+  game.pool = pool;
+  game.mass = Mass[pool];
+  return el;
 }

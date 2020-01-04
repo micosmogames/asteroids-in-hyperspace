@@ -33,6 +33,9 @@ aframe.registerComponent("playspace", {
     this.rotationProcess.stop();
     this.el.object3D.quaternion.set(0, 0, 0, 1); // Initial rotation
   },
+  endGame() {
+    this.rotationProcess.stop();
+  },
   startLevel() {
   },
 

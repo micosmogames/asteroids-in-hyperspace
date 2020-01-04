@@ -184,7 +184,7 @@ aframe.registerComponent('gamestate', {
     this.Env1.object3D.visible = true;
     startElement(this.Game);
     this.compHeadless.startRaycaster('.cursor-game, [trigger-target]', 0, 1000);
-    this.Hlc.setAttribute('headless-controller', 'triggerEventTarget', this.SpaceShip);
+    this.Hlc.setAttribute('headless-controller', 'triggerEventTarget', '#Spaceship');
   },
   exitPlaying() {
     stopElement(this.Game);
@@ -197,6 +197,7 @@ aframe.registerComponent('gamestate', {
 
   enterEndgame() {
     this.GameBoard.object3D.visible = true;
+    this.Game.components.game.endGame();
     startElement(this.EndGame);
     this.compHeadless.startRaycaster('.cursor-endgame');
   },

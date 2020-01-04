@@ -1,1 +1,1 @@
-Virtual reality game using AFrame and ThreeJS. Inspired by the arcade classic Aasteroids. Destroy the asteroids before they get you.
+Virtual reality game using AFrame and ThreeJS. Inspired by the arcade classic Asteroids. Destroy the asteroids before they get you.
