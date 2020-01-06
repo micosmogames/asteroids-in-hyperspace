@@ -4,7 +4,7 @@ const V0 = new THREE.Vector3(0, 0, 0);
 const V1 = new THREE.Vector3();
 const V2 = new THREE.Vector3();
 
-// Targeting services
+// Targeting related services
 
 /*
 *  Given a position and velocity of a target and launcher, as well as a projectile speed
@@ -34,4 +34,21 @@ export function timeToIntercept(launchPos, launchVel = V0, targetPos, targetVel,
   const discriminant = b * b - 4 * a * c;
   // Return value is 'c/at'.
   return discriminant <= 0 ? undefined : 2 * c / (Math.sqrt(discriminant) - b);
+}
+
+/*
+*  Given 'a', 'b' and 'c' we resolve the quadratic ax^2 + bx = c = 0 by
+*     x = (-b+/-sqrt(b^2 - 4)) / 2a
+*  Discriminant = b^2-4ac:
+*     < 0 - No solutions
+*     = 0 - 1 solution
+*     > 0 - 2 solutions
+*/
+export function resolveQuadratic(a, b, c, fRetValue) {
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return undefined;
+  const sqrtDisc = Math.sqrt(discriminant);
+  if (fRetValue)
+    return fRetValue((-b + sqrtDisc) / 2 * a, discriminant === 0 ? undefined : (-b - sqrtDisc) / 2 * a, a, b, c);
+  return discriminant === 0 ? [-b / 2 * a] : [(-b + sqrtDisc) / 2 * a, (-b - sqrtDisc) / 2 * a];
 }

@@ -41,6 +41,7 @@ aframe.registerComponent('gamestate', {
     this.el.sceneEl.systems.controller.addListeners(this);
     onLoadedDo(() => {
       this.compHeadless = this.Hlc.components['headless-controller'];
+      console.log('micosmo.asteroids.gamestate', 'Headless Controller loaded ===', this.compHeadless !== undefined);
     });
     this.pauseCount = 0;
 

@@ -5,6 +5,8 @@ import { bindEvent } from "aframe-event-decorators";
 import { onLoadedDo } from '@micosmo/aframe/startup';
 import { randomInt } from '@micosmo/core/number';
 import { removeIndex } from '@micosmo/core/object';
+import { resolveQuadratic } from '../lib/targeting';
+import { randomiseVector } from '@micosmo/aframe/lib/utils';
 import * as ticker from "@micosmo/ticker/aframe-ticker";
 
 const MaxPitchYaw = THREE.Math.degToRad(2); // In degrees
@@ -26,6 +28,7 @@ const GattlerRounds = 3;
 const TouchAngularRotation = THREE.Math.degToRad(180); // Degrees / s
 
 const HyperspaceCooldownInterval = 5000;
+const HyperspaceAnimationInterval = 300;
 const MinHyperspaceInterval = 500;
 const MaxHyperspaceInterval = 2000;
 
@@ -78,6 +81,8 @@ aframe.registerComponent("spaceship", {
     this.zAxis = new THREE.Vector3(0, 0, 1);
     this.axis = new THREE.Vector3();
     this.v1 = new THREE.Vector3();
+    this.v2 = new THREE.Vector3();
+    this.saveScale = new THREE.Vector3();
   },
   update(oldData) {
   },
@@ -131,8 +136,10 @@ aframe.registerComponent("spaceship", {
     return true
   },
   keyup_thrust() {
-    this.thrustProcess.stop();
-    this.reverseThrustProcess.start();
+    if (this.thrustProcess.isAttached()) {
+      this.thrustProcess.stop();
+      this.reverseThrustProcess.start();
+    }
     this.Thruster.object3D.visible = false;
     this.thrusterCounter = 0;
     return true
@@ -186,17 +193,97 @@ aframe.registerComponent("spaceship", {
   * hyperspacer(state) {
     this.reverseThrustProcess.stop();
     this.thrustProcess.stop()
+    this.Thruster.object3D.visible = false;
+    this.thrusterCounter = 0;
     this.travelProcess.stop();
+    if (this.Touch) this.trackerProcess.stop();
     this.velocity.setLength(0);
     this.hyperspaceDriveReady = false;
-    this.el.object3D.visible = false;
+    this.saveScale.copy(this.el.object3D.scale);
+    this.el.setAttribute('collider', 'enabled', 'false');
+
+    // Show the animation of the Spaceship warping to hyperspace
+    const geom3D = this.el.getObject3D('mesh').geometry;
+    const obj3D = this.el.object3D;
+    geom3D.computeBoundingSphere();
+    const ssRadius = geom3D.boundingSphere.radius;
+    const baseRadius = ssRadius * obj3D.scale.length();
+    const warpDistance = this.playspaceRadius / 2;
+    let stretch = warpDistance; let interval = HyperspaceAnimationInterval;
+    this.v1.copy(this.zAxis).applyQuaternion(obj3D.quaternion); // Direction
+    // To constrain the animation to the playspace we determine the distance to the edge of
+    // the playspace along the direction of the spaceship by resolving the quadratic:
+    //    |D|^2*x^2 + 2*(P.D)x + (|P|^2-r^2) = 0
+    //      where D is direction vector, P is ss position, r is placespace radius.
+    //      x will be the resolved distance.
+    const dist = resolveQuadratic(this.v1.lengthSq(), 2 * obj3D.position.dot(this.v1),
+      obj3D.position.lengthSq() - this.playspaceRadius * this.playspaceRadius, (s1, s2) => Math.max(s1, s2));
+    if (dist && dist < stretch + baseRadius) {
+      stretch = dist - baseRadius;
+      interval *= stretch / warpDistance;
+    }
+    let tzScale = (baseRadius + stretch) / (baseRadius / this.saveScale.z);
+    let vzScale = tzScale - this.saveScale.z;
+    // Stretch the spaceship
+    let curRadius = baseRadius; let newRadius = 0;
+    for (let timer = 0; timer < interval; timer += state.dt, curRadius = newRadius) {
+      obj3D.scale.setZ(obj3D.scale.z + vzScale * state.dt / interval);
+      newRadius = ssRadius * obj3D.scale.length();
+      const dtRadius = newRadius - curRadius;
+      this.v1.copy(this.zAxis).applyQuaternion(obj3D.quaternion).setLength(dtRadius / 2);
+      obj3D.position.add(this.v1); // Adjust for stretching around position.
+      yield;
+    }
+    // Now shrink the spaceship to a point
+    let vScale = obj3D.scale.length(); interval = HyperspaceAnimationInterval / 2;
+    for (let sLen = vScale, timer = 0; timer < interval; timer += state.dt, curRadius = newRadius) {
+      obj3D.scale.setLength(sLen -= vScale * state.dt / interval);
+      newRadius = ssRadius * obj3D.scale.length();
+      const dtRadius = curRadius - newRadius;
+      this.v1.copy(this.zAxis).applyQuaternion(obj3D.quaternion).setLength(dtRadius);
+      obj3D.position.add(this.v1); // Shrink to the end point.
+      yield;
+    }
+    obj3D.visible = false;
+
+    // Wait for a random interval before reappearing
     yield ticker.msWaiter(Math.random() * (MaxHyperspaceInterval - MinHyperspaceInterval) + MinHyperspaceInterval);
-    // Reappear at a random location in the play sphere
-    const len = Math.random() * this.playspaceRadius * 0.90; // Don't appear to close to edge of playspace
-    const x = Math.random() * 2 - 1; const y = Math.random() * 2 - 1; const z = Math.random() * 2 - 1;
-    console.log(len, x, y, z);
-    this.el.object3D.position.set(x, y, z).setLength(len);
-    this.el.object3D.visible = true;
+    // Reappear at a random location in the play sphere looking inwards
+    const len = Math.random() * this.playspaceRadius * 0.95; // Don't appear to close to edge of playspace
+    randomiseVector(obj3D.position, len);
+    this.PlaySpace.object3D.getWorldPosition(this.v1);
+    obj3D.lookAt(this.v1);
+
+    // Reverse the warp animation
+    obj3D.scale.copy(this.saveScale); interval = HyperspaceAnimationInterval / 2;
+    tzScale = (baseRadius + warpDistance) / (baseRadius / this.saveScale.z); obj3D.scale.setZ(tzScale);
+    vScale = obj3D.scale.length();
+    let sLen = 0.0001; obj3D.scale.setLength(sLen); curRadius = ssRadius * sLen;
+    obj3D.visible = true;
+    for (let timer = 0; timer < interval; timer += state.dt, curRadius = newRadius) {
+      obj3D.scale.setLength(sLen += vScale * state.dt / interval);
+      newRadius = ssRadius * obj3D.scale.length();
+      const dtRadius = newRadius - curRadius;
+      this.v1.copy(this.zAxis).applyQuaternion(obj3D.quaternion).setLength(dtRadius);
+      obj3D.position.add(this.v1); // Expand out the warp image
+      yield;
+    }
+    // Shrink ship back to correct size along z scale.
+    interval = HyperspaceAnimationInterval; vzScale = tzScale - this.saveScale.z;
+    for (let timer = 0; timer < interval; timer += state.dt, curRadius = newRadius) {
+      obj3D.scale.setZ(obj3D.scale.z - vzScale * state.dt / interval);
+      newRadius = ssRadius * obj3D.scale.length();
+      const dtRadius = curRadius - newRadius;
+      this.v1.copy(this.zAxis).applyQuaternion(obj3D.quaternion).setLength(dtRadius / 2);
+      obj3D.position.sub(this.v1); // Adjust for stretching around position.
+      yield;
+    }
+    // Restore the actual original scale.
+    obj3D.scale.copy(this.saveScale);
+    yield ticker.msWaiter(50); // Allow the warp back in to settle
+
+    this.el.setAttribute('collider', 'enabled', 'true');
+    if (this.Touch) this.trackerProcess.start();
     this.hyperspaceCooldownProcess.start();
   },
   * hyperspaceCooldown(state) {
