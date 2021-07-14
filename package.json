@@ -22,7 +22,7 @@
     "@micosmo/aframe": "git+https://github.com/micosmogames/aframe.git",
     "@micosmo/async": "git+https://github.com/micosmogames/async.git",
     "@micosmo/core": "git+https://github.com/micosmogames/core.git",
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "firebase": "^6.3.4",
     "npm-start": "^1.4.2",
     "react": "^16.2.0",
