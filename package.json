@@ -9,7 +9,7 @@
   "author": "Micosmo",
   "license": "ISC",
   "dependencies": {
-    "aframe": "^0.9.2",
+    "aframe": "^1.1.0",
     "aframe-environment-component": "^2.0.0",
     "aframe-event-decorators": "^1.0.0",
     "aframe-event-set-component": "^5.0.0",
